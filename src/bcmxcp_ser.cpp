@@ -66,7 +66,7 @@ static void send_command(unsigned char *command, size_t command_length)
 		sent = ser_send_buf(upsfd, sbuf, command_length);
 
 		if (sent < 0) {
-			upslogx(LOG_ERR, "%s(): error reading from ser_send_buf()", __func__);
+			Serial.printf("%s(): error reading from ser_send_buf()");
 			return;
 		}
 
@@ -299,7 +299,7 @@ static void pw_comm_setup(const char *port)
 		int br = atoi(getval("baud_rate"));
 		/* Note that atoi() behavior on erroneous input is undefined */
 		if (br < 0) {
-			upslogx(LOG_ERR, "baud_rate option is invalid");
+			Serial.printf("baud_rate option is invalid");
 			return;
 		}
 
@@ -374,14 +374,14 @@ static void pw_comm_setup(const char *port)
 			/* Cast baud into max length unsigned, despite the POSIX
 			 * standard some systems vary in definition of this type
 			 */
-			upslogx(LOG_INFO, "Connected to UPS on %s with baudrate %llu", port, (unsigned long long int)baud);
+			Serial.printf("Connected to UPS on %s with baudrate %llu", port, (unsigned long long int)baud);
 			return;
 		}
 
-		upslogx(LOG_ERR, "No response from UPS on %s with baudrate %llu", port, (unsigned long long int)baud);
+		Serial.printf("No response from UPS on %s with baudrate %llu", port, (unsigned long long int)baud);
 	}
 
-	upslogx(LOG_INFO, "Attempting to autodect baudrate");
+	Serial.printf("Attempting to autodect baudrate");
 
 	for (i=0; i<PW_MAX_BAUD; i++) {
 
@@ -397,7 +397,7 @@ static void pw_comm_setup(const char *port)
 		}
 
 		if (ret > 0) {
-			upslogx(LOG_INFO, "Connected to UPS on %s with baudrate %" PRIuSIZE, port, pw_baud_rates[i].name);
+			Serial.printf("Connected to UPS on %s with baudrate %" PRIuSIZE, port, pw_baud_rates[i].name);
 			return;
 		}
 

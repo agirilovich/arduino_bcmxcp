@@ -354,7 +354,7 @@ float get_float(const unsigned char *data)
 	}
 
 	/* Never happens */
-	upslogx(LOG_ERR, "s = %d, e = %d, f = %lu\n", s, e, f);
+	Serial.printf("s = %d, e = %d, f = %lu\n", s, e, f);
 	return 0;
 }
 
@@ -420,7 +420,6 @@ void init_command_map()
 	bcmxcp_command_map[PW_UPS_OFF].command_desc = "PW_UPS_OFF";
 	bcmxcp_command_map[PW_DECREMENT_OUTPUT_VOLTAGE].command_desc = "PW_DECREMENT_OUTPUT_VOLTAGE";
 	bcmxcp_command_map[PW_INCREMENT_OUTPUT_VOLTAGE].command_desc = "PW_INCREMENT_OUTPUT_VOLTAGE";
-	bcmxcp_command_map[PW_SET_TIME_AND_DATE].command_desc = "PW_SET_TIME_AND_DATE";
 	bcmxcp_command_map[PW_UPS_ON_TIME].command_desc = "PW_UPS_ON_TIME";
 	bcmxcp_command_map[PW_UPS_ON_AT_TIME].command_desc = "PW_UPS_ON_AT_TIME";
 	bcmxcp_command_map[PW_UPS_OFF_TIME].command_desc = "PW_UPS_OFF_TIME";
@@ -1269,7 +1268,7 @@ void init_limit(void)
 
 	/* Check if we should warn the user that her shutdown delay is too long? */
 	if (bcmxcp_status.shutdowndelay > bcmxcp_status.lowbatt)
-		upslogx(LOG_WARNING,
+		Serial.printf(
 			"Shutdown delay longer than battery capacity when Low Battery "
 			"warning is given. (max %d seconds)", bcmxcp_status.lowbatt);
 
@@ -1369,7 +1368,7 @@ void init_system_test_capabilities(void)
 	cbuf[1] = PW_SYS_TEST_REPORT_CAPABILITIES;
 	res = command_write_sequence(cbuf, 2, answer);
 	if (res <= 0) {
-		upslogx(LOG_ERR, "Short read from UPS");
+		Serial.printf("Short read from UPS");
 		return;
 	}
 
@@ -1431,7 +1430,7 @@ void upsdrv_initinfo(void)
 
 	/* No overflow checks, len value is byte-sized here */
 	buf = len * 11;
-	pTmp = xmalloc(buf+1);
+	pTmp = (char*) xmalloc(buf+1);
 
 	pTmp[0] = 0;
 	/* If there is one or more CPU number, get it */
@@ -1483,7 +1482,7 @@ void upsdrv_initinfo(void)
 	len = answer[iIndex++];
 
 	/* Extract and reformat the model string */
-	pTmp = xmalloc(len+15);
+	pTmp = (char*) xmalloc(len+15);
 	snprintf(pTmp, len + 1, "%s", answer + iIndex);
 	pTmp[len+1] = 0;
 	iIndex += len;
@@ -1619,7 +1618,7 @@ void upsdrv_updateinfo(void)
 	res = command_read_sequence(PW_METER_BLOCK_REQ, answer);
 
 	if (res <= 0) {
-		upslogx(LOG_ERR, "Short read from UPS");
+		Serial.printf("Short read from UPS");
 		dstate_datastale();
 		return;
 	}
@@ -1660,7 +1659,7 @@ void upsdrv_updateinfo(void)
 	/* Get alarm info from UPS */
 	res = command_read_sequence(PW_CUR_ALARM_REQ, answer);
 	if (res <= 0) {
-		upslogx(LOG_ERR, "Short read from UPS");
+		Serial.printf("Short read from UPS");
 		dstate_datastale();
 		return;
 	}
@@ -1702,7 +1701,7 @@ void upsdrv_updateinfo(void)
 	res = command_read_sequence(PW_STATUS_REQ, answer);
 	if (res <= 0)
 	{
-		upslogx(LOG_ERR, "Short read from UPS");
+		Serial.printf("Short read from UPS");
 		dstate_datastale();
 		return;
 	}
@@ -2160,14 +2159,14 @@ static int instcmd(const char *cmdname, const char *extra)
 		return decode_instcmd_exec(res, (unsigned char)answer[0], cmdname, success_msg);
 	}
 
-	upslogx(LOG_NOTICE, "instcmd: unknown command [%s]", cmdname);
+	Serial.printf("instcmd: unknown command [%s]", cmdname);
 	return STAT_INSTCMD_UNKNOWN;
 }
 
 static int decode_instcmd_exec(const ssize_t res, const unsigned char exec_status, const char *cmdname, const char *success_msg)
 {
 	if (res <= 0) {
-		upslogx(LOG_ERR, "[%s] Short read from UPS", cmdname);
+		Serial.printf("[%s] Short read from UPS", cmdname);
 		dstate_datastale();
 		return STAT_INSTCMD_FAILED;
 	}
@@ -2175,34 +2174,34 @@ static int decode_instcmd_exec(const ssize_t res, const unsigned char exec_statu
 	/* Decode the status code from command execution */
 	switch (exec_status) {
 		case BCMXCP_RETURN_ACCEPTED: {
-			upslogx(LOG_NOTICE, "[%s] %s", cmdname, success_msg);
+			Serial.printf("[%s] %s", cmdname, success_msg);
 			upsdrv_comm_good();
 			return STAT_INSTCMD_HANDLED;
 			}
 		case BCMXCP_RETURN_ACCEPTED_PARAMETER_ADJUST: {
-			upslogx(LOG_NOTICE, "[%s] Parameter adjusted", cmdname);
-			upslogx(LOG_NOTICE, "[%s] %s", cmdname, success_msg);
+			Serial.printf("[%s] Parameter adjusted", cmdname);
+			Serial.printf("[%s] %s", cmdname, success_msg);
 			upsdrv_comm_good();
 			return STAT_INSTCMD_HANDLED;
 			}
 		case BCMXCP_RETURN_BUSY: {
-			upslogx(LOG_NOTICE, "[%s] Busy or disbled by front panel", cmdname);
+			Serial.printf("[%s] Busy or disbled by front panel", cmdname);
 			return STAT_INSTCMD_FAILED;
 			}
 		case BCMXCP_RETURN_UNRECOGNISED: {
-			upslogx(LOG_NOTICE, "[%s] Unrecognised command byte or corrupt checksum", cmdname);
+			Serial.printf("[%s] Unrecognised command byte or corrupt checksum", cmdname);
 			return STAT_INSTCMD_FAILED;
 			}
 		case BCMXCP_RETURN_INVALID_PARAMETER: {
-			upslogx(LOG_NOTICE, "[%s] Invalid parameter", cmdname);
+			Serial.printf("[%s] Invalid parameter", cmdname);
 			return STAT_INSTCMD_INVALID;
 			}
 		case BCMXCP_RETURN_PARAMETER_OUT_OF_RANGE: {
-			upslogx(LOG_NOTICE, "[%s] Parameter out of range", cmdname);
+			Serial.printf("[%s] Parameter out of range", cmdname);
 			return STAT_INSTCMD_INVALID;
 			}
 		default: {
-			upslogx(LOG_NOTICE, "[%s] Not supported", cmdname);
+			Serial.printf("[%s] Not supported", cmdname);
 			return STAT_INSTCMD_INVALID;
 			}
 	}
@@ -2515,7 +2514,7 @@ int setvar (const char *varname, const char *val)
 static int decode_setvar_exec(const ssize_t res, const unsigned char exec_status, const char *cmdname, const char *success_msg)
 {
 	if (res <= 0) {
-		upslogx(LOG_ERR, "[%s] Short read from UPS", cmdname);
+		Serial.printf("[%s] Short read from UPS", cmdname);
 		dstate_datastale();
 		return STAT_SET_FAILED;
 	}
@@ -2523,34 +2522,34 @@ static int decode_setvar_exec(const ssize_t res, const unsigned char exec_status
 	/* Decode the status code from command execution */
 	switch (exec_status) {
 		case BCMXCP_RETURN_ACCEPTED: {
-			upslogx(LOG_NOTICE, "[%s] %s", cmdname, success_msg);
+			Serial.printf("[%s] %s", cmdname, success_msg);
 			upsdrv_comm_good();
 			return STAT_SET_HANDLED;
 			}
 		case BCMXCP_RETURN_ACCEPTED_PARAMETER_ADJUST: {
-			upslogx(LOG_NOTICE, "[%s] Parameter adjusted", cmdname);
-			upslogx(LOG_NOTICE, "[%s] %s", cmdname, success_msg);
+			Serial.printf("[%s] Parameter adjusted", cmdname);
+			Serial.printf("[%s] %s", cmdname, success_msg);
 			upsdrv_comm_good();
 			return STAT_SET_HANDLED;
 			}
 		case BCMXCP_RETURN_BUSY: {
-			upslogx(LOG_NOTICE, "[%s] Busy or disbled by front panel", cmdname);
+			Serial.printf("[%s] Busy or disbled by front panel", cmdname);
 			return STAT_SET_FAILED;
 			}
 		case BCMXCP_RETURN_UNRECOGNISED: {
-			upslogx(LOG_NOTICE, "[%s] Unrecognised command byte or corrupt checksum", cmdname);
+			Serial.printf("[%s] Unrecognised command byte or corrupt checksum", cmdname);
 			return STAT_SET_FAILED;
 			}
 		case BCMXCP_RETURN_INVALID_PARAMETER: {
-			upslogx(LOG_NOTICE, "[%s] Invalid parameter", cmdname);
+			Serial.printf("[%s] Invalid parameter", cmdname);
 			return STAT_SET_INVALID;
 			}
 		case BCMXCP_RETURN_PARAMETER_OUT_OF_RANGE: {
-			upslogx(LOG_NOTICE, "[%s] Parameter out of range", cmdname);
+			Serial.printf("[%s] Parameter out of range", cmdname);
 			return STAT_SET_INVALID;
 			}
 		default: {
-			upslogx(LOG_NOTICE, "[%s] Not supported", cmdname);
+			Serial.printf("[%s] Not supported", cmdname);
 			return STAT_SET_INVALID;
 			}
 	}

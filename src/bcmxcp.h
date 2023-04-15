@@ -5,8 +5,6 @@
 #ifndef NUT_BCMXCP_H_SEEN
 #define NUT_BCMXCP_H_SEEN 1
 
-#include "timehead.h"
-
 /* Have to wait at least 0,25 sec max 16 sec */
 /* 1 second is too short for PW9120 (leads to communication errors). So we set it to 2 seconds */
 #define PW_SLEEP 2
@@ -46,7 +44,6 @@
 #define PW_UPS_OFF                  (unsigned char)0x8B /* UPS off command. length 1-2 */
 #define PW_DECREMENT_OUTPUT_VOLTAGE (unsigned char)0x8C /* Decrease output voltage. length 1 */
 #define PW_INCREMENT_OUTPUT_VOLTAGE (unsigned char)0x8D /* Increase output voltage. length 1 */
-#define PW_SET_TIME_AND_DATE        (unsigned char)0x90 /* Set the real-time clock inside UPS. length 8 */
 #define PW_UPS_ON_TIME              (unsigned char)0x91 /* Scheduled UPS on in n minutes. length 3-4 */
 #define PW_UPS_ON_AT_TIME           (unsigned char)0x92 /* Schedule UPS on at specified date and time. length 7-8 */
 #define PW_UPS_OFF_TIME             (unsigned char)0x93 /* Scheduled UPS off in n minutes. length 3-4 */
