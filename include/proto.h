@@ -26,8 +26,6 @@
 
 #include "config.h"
 
-#include "attribute.h"
-
 #ifdef __cplusplus
 /* *INDENT-OFF* */
 extern "C" {

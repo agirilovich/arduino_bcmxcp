@@ -1,20 +1,13 @@
 #ifndef SERIAL_H_SEEN
 #define SERIAL_H_SEEN 1
 
-#include "config.h"	/* should be first */
-
-#include "attribute.h"
-
 #include "common.h" /* for TYPE_FD_SER, possibly fallback suseconds_t */
-#ifndef WIN32
-# if defined(HAVE_SYS_TERMIOS_H)
-#  include <sys/termios.h>      /* for speed_t */
-# else
-#  include <termios.h>
-# endif /* HAVE_SYS_TERMIOS_H */
-#else /* WIN32 */
-# include "wincompat.h"
-#endif /* WIN32 */
+
+#if defined(HAVE_SYS_TERMIOS_H)
+# include <sys/termios.h>      /* for speed_t */
+#else
+# include <termios.h>
+#endif /* HAVE_SYS_TERMIOS_H */
 
 #include <unistd.h>             /* for usleep() and useconds_t, latter also might be via <sys/types.h> */
 #include <sys/types.h>
@@ -26,17 +19,6 @@
 #define SER_ERR_LIMIT 10	/* start limiting after 10 in a row  */
 #define SER_ERR_RATE 100	/* then only print every 100th error */
 
-/* porting stuff for WIN32 */
-#ifdef WIN32
-/* TODO : support "open" flags */
-# define O_NONBLOCK 0
-# define O_NOCTTY 0
-
-/* Builds on Windows MSYS2 environment did not recognize this macro: */
-# ifndef TIOCM_ST
-#  define TIOCM_ST	0x008
-# endif
-#endif	/* WIN32 */
 
 TYPE_FD_SER ser_open_nf(const char *port);
 TYPE_FD_SER ser_open(const char *port);
@@ -44,14 +26,6 @@ TYPE_FD_SER ser_open(const char *port);
 int ser_set_speed(TYPE_FD_SER fd, const char *port, speed_t speed);
 int ser_set_speed_nf(TYPE_FD_SER fd, const char *port, speed_t speed);
 
-/* set the state of modem control lines */
-int ser_set_dtr(TYPE_FD_SER fd, int state);
-int ser_set_rts(TYPE_FD_SER fd, int state);
-
-/* get the status of modem control lines */
-int ser_get_dsr(TYPE_FD_SER fd);
-int ser_get_cts(TYPE_FD_SER fd);
-int ser_get_dcd(TYPE_FD_SER fd);
 
 int ser_close(TYPE_FD_SER fd, const char *port);
 
@@ -96,13 +70,5 @@ int ser_flush_io(TYPE_FD_SER fd);
 void ser_comm_fail(const char *fmt, ...)
 	__attribute__ ((__format__ (__printf__, 1, 2)));
 void ser_comm_good(void);
-
-#ifdef WIN32
-#define open(a,b)	w32_serial_open(a,b)
-#define close(a)	w32_serial_close(a)
-#define read(a,b,c)	w32_serial_read(a,b,c,INFINITE)
-#define write(a,b,c)	w32_serial_write(a,b,c)
-#endif
-
 
 #endif	/* SERIAL_H_SEEN */

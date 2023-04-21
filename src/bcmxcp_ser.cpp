@@ -8,15 +8,6 @@
 #define SUBDRIVER_NAME    "RS-232 communication subdriver"
 #define SUBDRIVER_VERSION "0.21"
 
-/* communication driver description structure */
-upsdrv_info_t comm_upsdrv_info = {
-	SUBDRIVER_NAME,
-	SUBDRIVER_VERSION,
-	NULL,
-	0,
-	{ NULL }
-};
-
 #define PW_MAX_BAUD 5
 
 /* NOT static: also used from nut-scanner, so extern'ed via bcmxcp_ser.h */
@@ -40,7 +31,7 @@ static void send_command(unsigned char *command, size_t command_length)
 	unsigned char sbuf[1024];
 
 	if (command_length > UCHAR_MAX) {
-		upsdebugx (3, "%s: ERROR: command_length too long for the character protocol", __func__);
+		Serial.printf("%s: ERROR: command_length too long for the character protocol", __func__);
 		return;
 	}
 
@@ -54,7 +45,7 @@ static void send_command(unsigned char *command, size_t command_length)
 	sbuf[command_length] = calc_checksum(sbuf);
 	command_length += 1;
 
-	upsdebug_hex (3, "send_command", sbuf, command_length);
+	Serial.printf("send_command", sbuf, command_length);
 
 	while (retry++ < PW_MAX_TRY) {
 
@@ -101,8 +92,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 			res = ser_get_char(upsfd, my_buf, 1, 0);
 
 			if (res != 1) {
-				upsdebugx(1,
-					"Receive error (PW_COMMAND_START_BYTE): %" PRIiSIZE ", cmd=%x!!!\n",
+				Serial.printf("Receive error (PW_COMMAND_START_BYTE): %" PRIiSIZE ", cmd=%x!!!\n",
 					res, command);
 				return -1;
 			}
@@ -212,7 +202,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 
 	}
 
-	upsdebug_hex (5, "get_answer", data, end_length);
+	Serial.printf("get_answer", data, end_length);
 	ser_comm_good();
 
 	assert(end_length < SSIZE_MAX);
@@ -356,7 +346,7 @@ static void pw_comm_setup(const char *port)
 		}
 
 		if (mybaud == 0) {
-			fatalx(EXIT_FAILURE, "Specified baudrate \"%s\" is invalid!", getval("baud_rate"));
+			Serial.printf("Specified baudrate \"%s\" is invalid!", getval("baud_rate"));
 		}
 
 		ser_set_speed(upsfd, device_path, mybaud);
@@ -401,10 +391,10 @@ static void pw_comm_setup(const char *port)
 			return;
 		}
 
-		upsdebugx(2, "No response from UPS on %s with baudrate %" PRIuSIZE, port, pw_baud_rates[i].name);
+		Serial.printf("No response from UPS on %s with baudrate %" PRIuSIZE, port, pw_baud_rates[i].name);
 	}
 
-	fatalx(EXIT_FAILURE, "Can't connect to the UPS on port %s!\n", port);
+	Serial.printf("Can't connect to the UPS on port %s!\n", port);
 }
 #if (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_BESIDEFUNC) && (!defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_INSIDEFUNC) && ( (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS_BESIDEFUNC) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE_BESIDEFUNC) )
 # pragma GCC diagnostic pop

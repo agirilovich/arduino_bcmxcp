@@ -19,22 +19,11 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-#ifndef DSTATE_H_SEEN
-#define DSTATE_H_SEEN 1
-
 #include "common.h"
 
 #include "state.h"
-#include "attribute.h"
 
-#include "parseconf.h"
 #include "upshandler.h"
-
-#include "main.h"	/* for set_exit_flag() */
-
-#ifdef WIN32
-# include "wincompat.h"
-#endif
 
 #define DS_LISTEN_BACKLOG 16
 #define DS_MAX_READ 256		/* don't read forever from upsd */
@@ -43,17 +32,6 @@
 #define MAX_STRING_SIZE	128
 #endif
 
-/* track client connections */
-typedef struct conn_s {
-	TYPE_FD	fd;
-#ifdef WIN32
-	char    buf[LARGEBUF];
-	OVERLAPPED read_overlapped;
-#endif
-	PCONF_CTX_t	ctx;
-	struct conn_s	*prev;
-	struct conn_s	*next;
-} conn_t;
 
 	extern	struct	ups_handler	upsh;
 
@@ -111,5 +89,3 @@ int dstate_detect_phasecount(
         const int may_reevaluate);
 
 void dstate_dump(void);
-
-#endif	/* DSTATE_H_SEEN */

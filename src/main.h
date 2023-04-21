@@ -1,9 +1,8 @@
-#ifndef NUT_MAIN_H_SEEN
-#define NUT_MAIN_H_SEEN
-
 #include "common.h"
 #include "dstate.h"
 #include "extstate.h"
+
+#include "bcmxcp.h"
 
 /* public functions & variables from main.c */
 extern const char	*progname, *upsname, *device_name;
@@ -53,31 +52,6 @@ typedef struct vartab_s {
 /* callback from driver - create the table for future -x entries */
 void addvar(int vartype, const char *name, const char *desc);
 
-/* subdriver description structure */
-typedef struct upsdrv_info_s {
-	const char	*name;		/* driver full name, for banner printing, ... */
-	const char	*version;	/* driver version */
-	const char	*authors;	/* authors name */
-	const int	status;		/* driver development status */
-	struct upsdrv_info_s	*subdrv_info[2];	/* sub driver information */
-} upsdrv_info_t;
-
-/* flags to define the driver development status */
-#define DRV_BROKEN		0x0001	/* dito... */
-#define DRV_EXPERIMENTAL	0x0002	/* dito... */
-#define DRV_BETA		0x0004	/* more stable and complete, but still
-					 * not suitable for production systems
-					 */
-#define DRV_STABLE		0x0008	/* suitable for production systems, but
-					 * not 100 % feature complete */
-#define DRV_COMPLETE		0x0010	/* gold level: implies 100 % of the
-					 * protocol implemented and the full QA
-					 * pass */
-/* FIXME: complete with mfr support, and other interesting info */
-
-/* public driver information from the driver file */
-extern upsdrv_info_t	upsdrv_info;
-
 /* functions and data possibly used via libdummy_mockdrv.la for unit-tests */
 #ifdef DRIVERS_MAIN_WITHOUT_MAIN
 extern vartab_t *vartab_h;
@@ -86,5 +60,3 @@ void storeval(const char *var, char *val);
 void vartab_free(void);
 void setup_signals(void);
 #endif /* DRIVERS_MAIN_WITHOUT_MAIN */
-
-#endif /* NUT_MAIN_H_SEEN */

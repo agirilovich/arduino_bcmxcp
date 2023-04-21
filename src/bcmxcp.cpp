@@ -123,23 +123,6 @@ TODO List:
 #define MAX_NUT_NAME_LENGTH 128
 #define NUT_OUTLET_POSITION   7
 
-/* driver description structure */
-upsdrv_info_t upsdrv_info = {
-	DRIVER_NAME,
-	DRIVER_VERSION,
-	"Martin Schroeder <emes@geomer.de>\n" \
-	"Kjell Claesson <kjell.claesson@epost.tidanet.se>\n" \
-	"Tore Ørpetveit <tore@orpetveit.net>\n" \
-	"Arnaud Quette <ArnaudQuette@Eaton.com>\n" \
-	"Wolfgang Ocker <weo@weo1.de>\n" \
-	"Oliver Wilcock\n" \
-	"Prachi Gandhi <prachisgandhi@eaton.com>\n" \
-	"Alf Høgemark <alf@i100>\n" \
-	"Gavrilov Igor",
-	DRV_STABLE,
-	{ &comm_upsdrv_info, NULL }
-};
-
 static uint16_t get_word(const unsigned char*);
 static uint32_t get_long(const unsigned char*);
 static float get_float(const unsigned char *data);
@@ -779,28 +762,28 @@ bool_t init_command(int size)
 	ssize_t res;
 	int iIndex = 0, ncounter, NumComms = 0, i;
 
-	upsdebugx(1, "entering init_command(%i)", size);
+	Serial.printf("entering init_command(%i)", size);
 
 	res = command_read_sequence(PW_COMMAND_LIST_REQ, answer);
 	if (res <= 0)
 	{
-		upsdebugx(2, "No command list block.");
+		Serial.printf("No command list block.");
 		return FALSE;
 	}
 	else
 	{
-		upsdebugx(2, "Command list block supported.");
+		Serial.printf("Command list block supported.");
 
 		res = answer[iIndex];
 		NumComms = (int)res; /* Number of commands implemented in this UPS */
-		upsdebugx(3, "Number of commands implemented in ups %" PRIiSIZE, res);
+		Serial.printf("Number of commands implemented in ups %" PRIiSIZE, res);
 		iIndex++;
 		res = answer[iIndex]; /* Entry length - bytes reported for each command */
 		iIndex++;
-		upsdebugx(5, "bytes per command %" PRIiSIZE, res);
+		Serial.printf("bytes per command %" PRIiSIZE, res);
 
 		/* In case of debug - make explanation of values */
-		upsdebugx(2, "Index\tCmd byte\tDescription");
+		Serial.printf("Index\tCmd byte\tDescription");
 
 		/* Get command bytes if size of command block matches with size from standard ID block */
 		if (NumComms + 2 == size)
@@ -809,11 +792,11 @@ bool_t init_command(int size)
 			{
 				commandByte = answer[iIndex];
 				if (commandByte < BCMXCP_COMMAND_MAP_MAX) {
-					upsdebugx(2, "%03d\t%02x\t%s", ncounter, commandByte, bcmxcp_command_map[commandByte].command_desc);
+					Serial.printf("%03d\t%02x\t%s", ncounter, commandByte, bcmxcp_command_map[commandByte].command_desc);
 					bcmxcp_command_map[commandByte].command_byte = commandByte;
 				}
 				else {
-					upsdebugx(2, "%03d\t%02x\t%s", ncounter, commandByte, "Unknown command, the commandByte is not mapped");
+					Serial.printf("%03d\t%02x\t%s", ncounter, commandByte, "Unknown command, the commandByte is not mapped");
 				}
 
 				iIndex++;
@@ -825,7 +808,7 @@ bool_t init_command(int size)
 					if (bcmxcp_command_map[i].command_byte > 0) {
 						if ((nutvalue = nut_find_infoval(command_map_info, bcmxcp_command_map[i].command_byte, FALSE)) != NULL) {
 							dstate_addcmd(nutvalue);
-							upsdebugx(2, "Added support for instcmd %s", nutvalue);
+							Serial.printf("Added support for instcmd %s", nutvalue);
 						}
 					}
 				}
@@ -834,7 +817,7 @@ bool_t init_command(int size)
 			return TRUE;
 		}
 		else {
-			upsdebugx(1, "Invalid response received from Command List block");
+			Serial.printf("Invalid response received from Command List block");
 			return FALSE;
 		}
 	}
@@ -845,7 +828,7 @@ void init_ups_meter_map(const unsigned char *map, unsigned char len)
 	unsigned int iIndex, iOffset = 0;
 
 	/* In case of debug - make explanation of values */
-	upsdebugx(2, "Index\tOffset\tFormat\tNUT");
+	Serial.printf("Index\tOffset\tFormat\tNUT");
 
 	/* Loop thru map */
 	for (iIndex = 0; iIndex < len && iIndex < BCMXCP_METER_MAP_MAX; iIndex++)
@@ -857,13 +840,13 @@ void init_ups_meter_map(const unsigned char *map, unsigned char len)
 			bcmxcp_meter_map[iIndex].meter_block_index = iOffset;
 
 			/* Debug info */
-			upsdebugx(2, "%04d\t%04d\t%2x\t%s", iIndex, iOffset, bcmxcp_meter_map[iIndex].format,
+			Serial.printf("%04d\t%04d\t%2x\t%s", iIndex, iOffset, bcmxcp_meter_map[iIndex].format,
 					(bcmxcp_meter_map[iIndex].nut_entity == NULL ? "None" :bcmxcp_meter_map[iIndex].nut_entity));
 
 			iOffset += 4;
 		}
 	}
-	upsdebugx(2, "\n");
+	Serial.printf("\n");
 }
 
 void decode_meter_map_entry(const unsigned char *entry, const unsigned char format, char* value)
@@ -959,7 +942,7 @@ void init_ups_alarm_map(const unsigned char *map, unsigned char len)
 	unsigned int alarm = 0;
 
 	/* In case of debug - make explanation of values */
-	upsdebugx(2, "Index\tAlarm\tSupported");
+	Serial.printf("Index\tAlarm\tSupported");
 
 	/* Loop thru map */
 	for (iIndex = 0; iIndex < len && iIndex < BCMXCP_ALARM_MAP_MAX / 8; iIndex++)
@@ -989,7 +972,7 @@ void init_ups_alarm_map(const unsigned char *map, unsigned char len)
 		if (set_alarm_support_in_alarm_map(map, iIndex, 0x80, iIndex * 8 + 7, alarm) == TRUE)
 			alarm++;
 	}
-	upsdebugx(2, "\n");
+	Serial.printf("\n");
 }
 
 bool_t set_alarm_support_in_alarm_map(
@@ -1015,12 +998,12 @@ bool_t set_alarm_support_in_alarm_map(
 	/* Return if the alarm was supported or not */
 	if (bcmxcp_alarm_map[alarmMapIndex].alarm_block_index >= 0) {
 		/* Debug info */
-		upsdebugx(2, "%04d\t%s\tYes", bcmxcp_alarm_map[alarmMapIndex].alarm_block_index, bcmxcp_alarm_map[alarmMapIndex].alarm_desc);
+		Serial.printf("%04d\t%s\tYes", bcmxcp_alarm_map[alarmMapIndex].alarm_block_index, bcmxcp_alarm_map[alarmMapIndex].alarm_desc);
 		return TRUE;
 		}
 	else {
 		/* Debug info */
-		upsdebugx(3, "%04d\t%s\tNo", bcmxcp_alarm_map[alarmMapIndex].alarm_block_index, bcmxcp_alarm_map[alarmMapIndex].alarm_desc);
+		Serial.printf("%04d\t%s\tNo", bcmxcp_alarm_map[alarmMapIndex].alarm_block_index, bcmxcp_alarm_map[alarmMapIndex].alarm_desc);
 		return FALSE;
 	}
 }
@@ -1040,31 +1023,31 @@ unsigned char init_outlet(unsigned char len)
 
 	res = command_read_sequence(PW_OUT_MON_BLOCK_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.printf("Could not communicate with the ups");
 	else
-		upsdebugx(1, "init_outlet(%i), res=%" PRIiSIZE, len, res);
+		Serial.printf("init_outlet(%i), res=%" PRIiSIZE, len, res);
 
 	num_outlet = answer[iIndex++];
-	upsdebugx(2, "Number of outlets: %u", num_outlet);
+	Serial.printf("Number of outlets: %u", num_outlet);
 
 	size_outlet = answer[iIndex++];
-	upsdebugx(2, "Number of bytes: %u", size_outlet);
+	Serial.printf("Number of bytes: %u", size_outlet);
 
 	for (num = 1 ; num <= num_outlet ; num++) {
 		outlet_num = answer[iIndex++];
-		upsdebugx(2, "Outlet number: %u", outlet_num);
+		Serial.printf("Outlet number: %u", outlet_num);
 		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.id", num);
 		dstate_setinfo(outlet_name, "%u", outlet_num);
 
 		outlet_state = answer[iIndex++];
-		upsdebugx(2, "Outlet state: %u", outlet_state);
+		Serial.printf("Outlet state: %u", outlet_state);
 		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.status", num);
 		if (outlet_state>0 && outlet_state <9)
 			dstate_setinfo(outlet_name, "%s", OutletStatus[outlet_state]);
 
 		auto_dly_off = get_word(answer+iIndex);
 		iIndex += 2;
-		upsdebugx(2, "Auto delay off: %u", auto_dly_off);
+		Serial.printf("Auto delay off: %u", auto_dly_off);
 		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.delay.shutdown", num);
 		dstate_setinfo(outlet_name, "%u", auto_dly_off);
 		dstate_setflags(outlet_name, ST_FLAG_RW | ST_FLAG_STRING);
@@ -1072,7 +1055,7 @@ unsigned char init_outlet(unsigned char len)
 
 		auto_dly_on = get_word(answer+iIndex);
 		iIndex += 2;
-		upsdebugx(2, "Auto delay on: %u", auto_dly_on);
+		Serial.printf("Auto delay on: %u", auto_dly_on);
 		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.delay.start", num);
 		dstate_setinfo(outlet_name, "%u", auto_dly_on);
 		dstate_setflags(outlet_name, ST_FLAG_RW | ST_FLAG_STRING);
@@ -1099,7 +1082,7 @@ void init_ext_vars(void)
 
 	length = command_write_sequence(cbuf, 4, answer);
 	if (length <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.printf("Could not communicate with the ups");
 	if (length < 4)  /* UPS doesn't have configurable vars */
 		return;
 	for (index=3; index < length; index++) {
@@ -1174,7 +1157,7 @@ void init_config(void)
 
 	res = command_read_sequence(PW_CONFIG_BLOCK_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.printf("Could not communicate with the ups");
 
 	/* Get validation mask for status bitmap */
 	bcmxcp_status.topology_mask = answer[BCMXCP_CONFIG_BLOCK_HW_MODULES_INSTALLED_BYTE3];
@@ -1226,7 +1209,7 @@ void init_limit(void)
 
 	res = command_read_sequence(PW_LIMIT_BLOCK_REQ, answer);
 	if (res <= 0) {
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.printf("Could not communicate with the ups");
 	}
 
 	/* Nominal input voltage */
@@ -1343,7 +1326,7 @@ void init_topology(void)
 
 	res = command_read_sequence(PW_UPS_TOP_DATA_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.printf("Could not communicate with the ups");
 
 	value = get_word(answer);
 
@@ -1373,7 +1356,7 @@ void init_system_test_capabilities(void)
 	}
 
 	if ((unsigned char)answer[0] != BCMXCP_RETURN_ACCEPTED) {
-		upsdebugx(2, "System test capabilities list not supported");
+		Serial.printf("System test capabilities list not supported");
 		return;
 	}
 
@@ -1381,7 +1364,7 @@ void init_system_test_capabilities(void)
 	for (i = 3; i < res; i++) {
 		value = answer[i];
 		if ((nutvalue = nut_find_infoval(system_test_info, value, TRUE)) != NULL) {
-			upsdebugx(2, "Added support for instcmd %s", nutvalue);
+			Serial.printf("Added support for instcmd %s", nutvalue);
 			dstate_addcmd(nutvalue);
 		}
 	}
@@ -1412,9 +1395,7 @@ void upsdrv_initinfo(void)
 		if (tmp >= 0) {
 			bcmxcp_status.shutdowndelay = (unsigned int)tmp;
 		} else {
-			fatal_with_errno(EXIT_FAILURE,
-				"Invalid setting for shutdown_delay: %s",
-				getval("shutdown_delay"));
+			Serial.printf("Invalid setting for shutdown_delay: %s",	getval("shutdown_delay"));
 		}
 	} else {
 		bcmxcp_status.shutdowndelay = 120;
@@ -1423,14 +1404,14 @@ void upsdrv_initinfo(void)
 	/* Get information on UPS from UPS ID block */
 	res = command_read_sequence(PW_ID_BLOCK_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.printf("Could not communicate with the ups");
 
 	/* Get number of CPU's in ID block */
 	len = answer[iIndex++];
 
 	/* No overflow checks, len value is byte-sized here */
 	buf = len * 11;
-	pTmp = (char*) xmalloc(buf+1);
+	pTmp = (char*) malloc(buf+1);
 
 	pTmp[0] = 0;
 	/* If there is one or more CPU number, get it */
@@ -1482,7 +1463,7 @@ void upsdrv_initinfo(void)
 	len = answer[iIndex++];
 
 	/* Extract and reformat the model string */
-	pTmp = (char*) xmalloc(len+15);
+	pTmp = (char*) malloc(len+15);
 	snprintf(pTmp, len + 1, "%s", answer + iIndex);
 	pTmp[len+1] = 0;
 	iIndex += len;
@@ -1498,60 +1479,60 @@ void upsdrv_initinfo(void)
 
 	/* Get meter map info from ups, and init our map */
 	len = answer[iIndex++];
-	upsdebugx(2, "Length of meter map: %u\n", len);
+	Serial.printf("Length of meter map: %u\n", len);
 	/* Here and below, no range check needed - just initialized from unsigned char array */
 	init_ups_meter_map(answer+iIndex, (unsigned char)len);
 	iIndex += len;
 
 	/* Next is alarm map */
 	len = answer[iIndex++];
-	upsdebugx(2, "Length of alarm map: %u\n", len);
+	Serial.printf("Length of alarm map: %u\n", len);
 	init_ups_alarm_map(answer+iIndex, (unsigned char)len);
 	iIndex += len;
 
 	/* Then the Config_block_length */
 	conf_block_len = get_word(answer+iIndex);
-	upsdebugx(2, "Length of Config_block: %u\n", conf_block_len);
+	Serial.printf("Length of Config_block: %u\n", conf_block_len);
 	iIndex += 2;
 
 	/* Next is statistics map */
 	len = answer[iIndex++];
-	upsdebugx(2, "Length of statistics map: %u\n", len);
+	Serial.printf("Length of statistics map: %u\n", len);
 	/* init_statistics_map(answer+iIndex, (unsigned char)len); */
 	iIndex += len;
 
 	/* Size of the alarm history log */
 	len = get_word(answer+iIndex);
-	upsdebugx(2, "Length of alarm history log: %u\n", len);
+	Serial.printf("Length of alarm history log: %u\n", len);
 	iIndex += 2;
 
 	/* Size of custom event log, always 0 according to spec */
 	iIndex += 2;
 	/* Size of topology block */
 	topology_block_len = get_word(answer+iIndex);
-	upsdebugx(2, "Length of topology block: %u\n", topology_block_len);
+	Serial.printf("Length of topology block: %u\n", topology_block_len);
 	iIndex += 2;
 
 	/* Maximum supported command length */
 	len = answer[iIndex++];
-	upsdebugx(2, "Length of max supported command length: %u\n", len);
+	Serial.printf("Length of max supported command length: %u\n", len);
 
 	/* Size of command list block */
 	if (iIndex < (unsigned int)res)
 		cmd_list_len = get_word(answer+iIndex);
-	upsdebugx(2, "Length of command list: %u\n", cmd_list_len);
+	Serial.printf("Length of command list: %u\n", cmd_list_len);
 	iIndex += 2;
 
 	/* Size of outlet monitoring block */
 	if (iIndex < (unsigned int)res)
 		outlet_block_len = get_word(answer+iIndex);
-	upsdebugx(2, "Length of outlet_block: %u\n", outlet_block_len);
+	Serial.printf("Length of outlet_block: %u\n", outlet_block_len);
 	iIndex += 2;
 
 	/* Size of the alarm block */
 	if (iIndex < (unsigned int)res)
 		alarm_block_len = get_word(answer+iIndex);
-	upsdebugx(2, "Length of alarm_block: %u\n", alarm_block_len);
+	Serial.printf("Length of alarm_block: %u\n", alarm_block_len);
 	/* End of UPS ID block request */
 
 	/* Due to a bug in PW5115 firmware, we need to use blocklength > 8.
@@ -1559,7 +1540,7 @@ void upsdrv_initinfo(void)
 	at least 2 outlet block. 5115 has only one outlet, but has outlet block! */
 	if (outlet_block_len > 8) {
 		if (outlet_block_len > 255)
-			fatal_with_errno(EXIT_FAILURE, "outlet_block_len overflow: %u", outlet_block_len);
+			Serial.printf("outlet_block_len overflow: %u", outlet_block_len);
 		len = init_outlet((unsigned char)outlet_block_len /* arg ignored */);
 
 		for (res = 1 ; (unsigned int)res <= (unsigned int)len ; res++) {
@@ -1652,7 +1633,7 @@ void upsdrv_updateinfo(void)
 	at least 2 outlet block. 5115 has only one outlet, but has outlet block. */
 	if (outlet_block_len > 8) {
 		if (outlet_block_len > 255)
-			fatal_with_errno(EXIT_FAILURE, "outlet_block_len overflow: %u", outlet_block_len);
+			Serial.printf("outlet_block_len overflow: %u", outlet_block_len);
 		init_outlet((unsigned char)outlet_block_len /* arg ignored */);
 	}
 
@@ -1770,7 +1751,7 @@ void upsdrv_updateinfo(void)
 	res = command_read_sequence(PW_BATTERY_REQ, answer);
 	if (res <= 0)
 	{
-		upsdebugx(1, "Failed to read Battery Status from UPS");
+		Serial.printf("Failed to read Battery Status from UPS");
 	}
 	else
 	{
@@ -1780,15 +1761,15 @@ void upsdrv_updateinfo(void)
 		 *  Powerware 9130 output:
 		 *   03 0a d7 25 42 0a d7 25 42 00 9a 19 6d 43 cd cc 4c 3e 01 00 01 03
 		 */
-		upsdebug_hex(2, "Battery Status", answer, (size_t)res);
+		Serial.printf("Battery Status", answer, (size_t)res);
 		batt_status = answer[BCMXCP_BATTDATA_BLOCK_BATT_TEST_STATUS];
 
 		if ((nutvalue = nut_find_infoval(batt_test_info, batt_status, TRUE)) != NULL) {
 			dstate_setinfo("ups.test.result", "%s", nutvalue);
-			upsdebugx(2, "Battery Status = %s (%i)", nutvalue, batt_status);
+			Serial.printf("Battery Status = %s (%i)", nutvalue, batt_status);
 		}
 		else {
-			upsdebugx(1, "Failed to extract Battery Status from answer");
+			Serial.printf("Failed to extract Battery Status from answer");
 		}
 
 		/*Extracting internal batteries ABM status*/
@@ -1802,7 +1783,7 @@ void upsdrv_updateinfo(void)
 		value =
 			*(answer + BCMXCP_BATTDATA_BLOCK_NUMBER_OF_STRINGS +
 			  *(answer + BCMXCP_BATTDATA_BLOCK_NUMBER_OF_STRINGS) * 1 + 2);
-		upsdebugx(2, "ABM Status = %u ", value);
+		Serial.printf("ABM Status = %u ", value);
 		if (value < 5)
 			dstate_setinfo("battery.charger.status", "%s", ABMStatus[value-1]);
 	}
@@ -1810,7 +1791,7 @@ void upsdrv_updateinfo(void)
 
 	res = command_read_sequence(PW_LIMIT_BLOCK_REQ, answer);
 	if (res <= 0) {
-		upsdebugx(1, "Failed to read EXT LIMITs from UPS");
+		Serial.printf("Failed to read EXT LIMITs from UPS");
 	} else
 	{
 		/* Nominal input voltage */
@@ -1894,7 +1875,7 @@ void upsdrv_updateinfo(void)
 
 	res = command_read_sequence(PW_CONFIG_BLOCK_REQ, answer);
 	if (res <= 0) {
-		upsdebugx(1, "Failed to read CONF BLOCK from UPS");
+		Serial.printf("Failed to read CONF BLOCK from UPS");
 	}
 	else
 	{
@@ -1947,7 +1928,7 @@ float calculate_ups_load(const unsigned char *answer)
 
 void upsdrv_shutdown(void)
 {
-	upsdebugx(1, "upsdrv_shutdown...");
+	Serial.printf("upsdrv_shutdown...");
 
 	/* Try to shutdown with delay */
 	if (instcmd("shutdown.return", NULL) == STAT_INSTCMD_HANDLED) {
@@ -1961,7 +1942,7 @@ void upsdrv_shutdown(void)
 		return;
 	}
 
-	fatalx(EXIT_FAILURE, "Shutdown failed!");
+	Serial.printf("Shutdown failed!");
 }
 
 
@@ -1976,7 +1957,7 @@ static int instcmd(const char *cmdname, const char *extra)
 	int sec, outlet_num;
 	int sddelay = 0x03; /* outlet off in 3 seconds, by default */
 
-	upsdebugx(1, "entering instcmd(%s)(%s)", cmdname, extra);
+	Serial.printf("entering instcmd(%s)(%s)", cmdname, extra);
 
 	if (!strcasecmp(cmdname, "shutdown.return")) {
 		send_write_command(AUTHOR, 4);
@@ -2227,7 +2208,7 @@ int setvar (const char *varname, const char *val)
 	int sec, outlet_num, tmp;
 	int onOff_setting = PW_AUTO_OFF_DELAY;
 
-	upsdebugx(1, "entering setvar(%s, %s)", varname, val);
+	Serial.printf("entering setvar(%s, %s)", varname, val);
 
 	if (!strcasecmp(varname, "input.transfer.boost.high")) {
 
@@ -2572,12 +2553,12 @@ static const char *nut_find_infoval(info_lkp_t *xcp2info, const double value, co
 	/* use 'value' as an index for a lookup in an array */
 	for (info_lkp = xcp2info; info_lkp->nut_value != NULL; info_lkp++) {
 		if (info_lkp->xcp_value == (long)value) {
-			upsdebugx(5, "nut_find_infoval: found %s (value: %ld)", info_lkp->nut_value, (long)value);
+			Serial.printf("nut_find_infoval: found %s (value: %ld)", info_lkp->nut_value, (long)value);
 			return info_lkp->nut_value;
 		}
 	}
 	if (debug_output_nonexisting == TRUE) {
-		upsdebugx(3, "nut_find_infoval: no matching INFO_* value for this XCP value (%g)", value);
+		Serial.printf("nut_find_infoval: no matching INFO_* value for this XCP value (%g)", value);
 	}
 	return NULL;
 }

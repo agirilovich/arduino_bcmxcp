@@ -17,8 +17,6 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-#ifndef NUT_COMMON_H_SEEN
-#define NUT_COMMON_H_SEEN 1
 
 #include "config.h"		/* must be the first header */
 
@@ -62,7 +60,6 @@
 
 #include <assert.h>
 
-#include "attribute.h"
 #include "proto.h"
 #include "str.h"
 
@@ -131,53 +128,6 @@ extern const char *UPS_VERSION;
 int snprintfcat(char *dst, size_t size, const char *fmt, ...)
 	__attribute__ ((__format__ (__printf__, 3, 4)));
 
-/* upslog*() messages are sent to syslog always;
- * their life after that is out of NUT's control */
-void upslog_with_errno(int priority, const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 2, 3)));
-
-/* upsdebug*() messages are only logged if debugging
- * level is high enough. To speed up a bit (minimize
- * passing of ultimately ignored data trough the stack)
- * these are "hidden" implementations wrapped into
- * macros for earlier routine names spread around the
- * codebase, they would check debug level first and
- * only if logging should happen - call the routine
- * and pass around pointers and other data.
- */
-void s_upsdebug_with_errno(int level, const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 2, 3)));
-void s_upsdebugx(int level, const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 2, 3)));
-void s_upsdebug_hex(int level, const char *msg, const void *buf, size_t len);
-void s_upsdebug_ascii(int level, const char *msg, const void *buf, size_t len);
-/* These macros should help avoid run-time overheads
- * passing data for messages nobody would ever see.
- *
- * Also NOTE: the "level" may be specified by callers in various ways,
- * e.g. as a "X ? Y : Z" style expression; to catch those expansions
- * transparently we hide them into parentheses as "(label)".
- *
- * For stricter C99 compatibility, all parameters specified to a macro
- * must be populated by caller (so we do not handle "fmt, args..." where
- * the args part may be skipped by caller because fmt is a fixed string).
- * Note it is then up to the caller (and compiler checks) that at least
- * one argument is provided, the format string (maybe fixed) -- as would
- * be required by the actual s_upsdebugx*() method after macro evaluation.
- */
-#define upsdebug_with_errno(level, ...) \
-	do { if (nut_debug_level >= (level)) { s_upsdebug_with_errno((level), __VA_ARGS__); } } while(0)
-#define upsdebugx(level, ...) \
-	do { if (nut_debug_level >= (level)) { s_upsdebugx((level), __VA_ARGS__); } } while(0)
-#define upsdebug_hex(level, msg, buf, len) \
-	do { if (nut_debug_level >= (level)) { s_upsdebug_hex((level), msg, buf, len); } } while(0)
-#define upsdebug_ascii(level, msg, buf, len) \
-	do { if (nut_debug_level >= (level)) { s_upsdebug_ascii((level), msg, buf, len); } } while(0)
-
-void fatal_with_errno(int status, const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 2, 3))) __attribute__((noreturn));
-void fatalx(int status, const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 2, 3))) __attribute__((noreturn));
 
 /* Report CONFIG_FLAGS used for this build of NUT similarly to how
  * upsdebugx(1, ...) would do it, but not limiting the string length
@@ -186,11 +136,6 @@ void nut_report_config_flags(void);
 
 extern int nut_debug_level;
 extern int nut_log_level;
-
-void *xmalloc(size_t size);
-void *xcalloc(size_t number, size_t size);
-void *xrealloc(void *ptr, size_t size);
-char *xstrdup(const char *string);
 
 /* Note: different method signatures instead of TYPE_FD_SER due to "const" */
 ssize_t select_read(const int fd, void *buf, const size_t buflen, const time_t d_sec, const suseconds_t d_usec);
@@ -230,6 +175,4 @@ size_t strnlen(const char *s, size_t maxlen);
 /* *INDENT-OFF* */
 }
 /* *INDENT-ON* */
-#endif
-
 #endif
