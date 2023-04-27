@@ -22,8 +22,6 @@
 #ifndef NUT_STATE_H_SEEN
 #define NUT_STATE_H_SEEN 1
 
-#include "extstate.h"
-
 #ifdef __cplusplus
 /* *INDENT-OFF* */
 extern "C" {
@@ -51,6 +49,26 @@ typedef struct st_tree_s {
 	struct st_tree_s	*left;
 	struct st_tree_s	*right;
 } st_tree_t;
+
+/* list of possible ENUM values */
+typedef struct enum_s {
+	char	*val;
+	struct enum_s	*next;
+} enum_t;
+
+/* RANGE boundaries */
+typedef struct range_s {
+	int min;
+	int max;
+	struct range_s	*next;
+} range_t;
+
+/* list of instant commands */
+typedef struct cmdlist_s {
+	char	*name;
+	struct cmdlist_s	*next;
+} cmdlist_t;
+
 
 int state_setinfo(st_tree_t **nptr, const char *var, const char *val);
 int state_addenum(st_tree_t *root, const char *var, const char *val);

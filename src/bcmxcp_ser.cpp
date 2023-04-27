@@ -1,7 +1,5 @@
-#include "main.h"
 #include "bcmxcp.h"
 #include "bcmxcp_io.h"
-#include "bcmxcp_ser.h"
 #include "serial.h"
 #include "nut_stdint.h"
 
@@ -9,17 +7,6 @@
 #define SUBDRIVER_VERSION "0.21"
 
 #define PW_MAX_BAUD 5
-
-/* NOT static: also used from nut-scanner, so extern'ed via bcmxcp_ser.h */
-pw_baud_rate_t pw_baud_rates[] = {
-	{ B19200, 19200 },
-	{ B9600,  9600 },
-	{ B4800,  4800 },
-	{ B2400,  2400 },
-	{ B1200,  1200 },
-	/* end of structure. */
-	{ 0,  0 }
-};
 
 /* NOT static: also used from nut-scanner, so extern'ed via bcmxcp_ser.h */
 unsigned char BCMXCP_AUTHCMD[4] = {0xCF, 0x69, 0xE8, 0xD5}; /* Authorisation command */
@@ -102,7 +89,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		} while ((my_buf[0] != PW_COMMAND_START_BYTE) && (start < 128));
 
 		if (start == 128) {
-			ser_comm_fail("Receive error (PW_COMMAND_START_BYTE): packet not on start!!%x\n", my_buf[0]);
+			Serial.printf("Receive error (PW_COMMAND_START_BYTE): packet not on start!!%x\n", my_buf[0]);
 			return -1;
 		}
 
@@ -110,7 +97,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		res = ser_get_char(upsfd, my_buf + 1, 1, 0);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (Block number): %" PRIiSIZE "!!!\n", res);
+			Serial.printf("Receive error (Block number): %" PRIiSIZE "!!!\n", res);
 			return -1;
 		}
 
@@ -118,19 +105,19 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 
 		if (command <= 0x43) {
 			if ((command - 0x30) != block_number) {
-				ser_comm_fail("Receive error (Request command): %x!!!\n", block_number);
+				Serial.printf("Receive error (Request command): %x!!!\n", block_number);
 				return -1;
 			}
 		}
 
 		if (command >= 0x89) {
 			if ((command == 0xA0) && (block_number != 0x01)) {
-				ser_comm_fail("Receive error (Requested only mode command): %x!!!\n", block_number);
+				Serial.printf("Receive error (Requested only mode command): %x!!!\n", block_number);
 				return -1;
 			}
 
 			if ((command != 0xA0) && (block_number != 0x09)) {
-				ser_comm_fail("Receive error (Control command): %x!!!\n", block_number);
+				Serial.printf("Receive error (Control command): %x!!!\n", block_number);
 				return -1;
 			}
 		}
@@ -139,14 +126,14 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		res = ser_get_char(upsfd, my_buf + 2, 1, 0);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (length): %" PRIiSIZE "!!!\n", res);
+			Serial.printf("Receive error (length): %" PRIiSIZE "!!!\n", res);
 			return -1;
 		}
 
 		length = (unsigned char)my_buf[2];
 
 		if (length < 1) {
-			ser_comm_fail("Receive error (length): packet length %" PRIxSIZE "!!!\n", length);
+			Serial.printf("Receive error (length): packet length %" PRIxSIZE "!!!\n", length);
 			return -1;
 		}
 
@@ -154,7 +141,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		res = ser_get_char(upsfd, my_buf + 3, 1, 0);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (sequence): %" PRIiSIZE "!!!\n", res);
+			Serial.printf("Receive error (sequence): %" PRIiSIZE "!!!\n", res);
 			return -1;
 		}
 
@@ -165,7 +152,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		}
 
 		if ((sequence & 0x07) != (pre_sequence + 1)) {
-			ser_comm_fail("Not the right sequence received %x!!!\n", sequence);
+			Serial.printf("Not the right sequence received %x!!!\n", sequence);
 			return -1;
 		}
 
@@ -174,12 +161,12 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		/* Try to read all the remaining bytes */
 		res = ser_get_buf_len(upsfd, my_buf + 4, length, 1, 0);
 		if (res < 0) {
-			ser_comm_fail("%s(): ser_get_buf_len() returned error code %" PRIiSIZE, __func__, res);
+			Serial.printf("%s(): ser_get_buf_len() returned error code %" PRIiSIZE, __func__, res);
 			return res;
 		}
 
 		if ((size_t)res != length) {
-			ser_comm_fail("Receive error (data): got %" PRIiSIZE " bytes instead of %" PRIuSIZE "!!!\n", res, length);
+			Serial.printf("Receive error (data): got %" PRIiSIZE " bytes instead of %" PRIuSIZE "!!!\n", res, length);
 			return -1;
 		}
 
@@ -187,13 +174,13 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		res = ser_get_char(upsfd, my_buf + (4 + length), 1, 0);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (checksum): %" PRIxSIZE "!!!\n", res);
+			Serial.printf("Receive error (checksum): %" PRIxSIZE "!!!\n", res);
 			return -1;
 		}
 
 		/* now we have the whole answer from the ups, we can checksum it */
 		if (!checksum_test(my_buf)) {
-			ser_comm_fail("checksum error! ");
+			Serial.printf("checksum error! ");
 			return -1;
 		}
 
@@ -203,7 +190,6 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 	}
 
 	Serial.printf("get_answer", data, end_length);
-	ser_comm_good();
 
 	assert(end_length < SSIZE_MAX);
 	return (ssize_t)end_length;
@@ -240,7 +226,7 @@ ssize_t command_read_sequence(unsigned char command, unsigned char *answer)
 	bytes_read = command_sequence(&command, 1, answer);
 
 	if (bytes_read < 1) {
-		ser_comm_fail("Error executing command");
+		Serial.printf("Error executing command");
 	}
 
 	return bytes_read;
@@ -254,163 +240,17 @@ ssize_t command_write_sequence(unsigned char *command, size_t command_length, un
 	bytes_read = command_sequence(command, command_length, answer);
 
 	if (bytes_read < 1) {
-		ser_comm_fail("Error executing command");
+		Serial.printf("Error executing command");
 	}
 
 	return bytes_read;
 }
 
-void upsdrv_comm_good()
+void upsdrv_initups(unsigned long speed)
 {
-	ser_comm_good();
+	upsfd = ser_open(speed);
 }
 
-#if (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_BESIDEFUNC) && (!defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_INSIDEFUNC) && ( (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS_BESIDEFUNC) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE_BESIDEFUNC) )
-# pragma GCC diagnostic push
-#endif
-
-#if (!defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_INSIDEFUNC) && (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS_BESIDEFUNC)
-# pragma GCC diagnostic ignored "-Wtype-limits"
-#endif
-#if (!defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_INSIDEFUNC) && (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE_BESIDEFUNC)
-# pragma GCC diagnostic ignored "-Wtautological-constant-out-of-range-compare"
-#endif
-static void pw_comm_setup(const char *port)
-{
-	unsigned char command = PW_SET_REQ_ONLY_MODE;
-	unsigned char id_command = PW_ID_BLOCK_REQ;
-	unsigned char answer[256];
-	int i = 0;
-	ssize_t ret = -1;
-	speed_t mybaud = 0, baud;
-
-	if (getval("baud_rate") != NULL)
-	{
-		int br = atoi(getval("baud_rate"));
-		/* Note that atoi() behavior on erroneous input is undefined */
-		if (br < 0) {
-			Serial.printf("baud_rate option is invalid");
-			return;
-		}
-
-		/* FIXME: speed_t does not define a SPEED_MAX value nor
-		 * guarantee that it is an int (just a typedef from
-		 * termios.h happens to say that on some systems)...
-		 * But since we convert this setting from int, we assume...
-		 */
-#if (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP) && ( (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_UNREACHABLE_CODE) )
-/* Note for gating macros above: unsuffixed HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP
- * means support of contexts both inside and outside function body, so the push
- * above and pop below (outside this finction) are not used.
- */
-# pragma GCC diagnostic push
-#endif
-#ifdef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS
-/* Note that the individual warning pragmas for use inside function bodies
- * are named without a _INSIDEFUNC suffix, for simplicity and legacy reasons
- */
-# pragma GCC diagnostic ignored "-Wtype-limits"
-#endif
-#ifdef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_UNREACHABLE_CODE
-#pragma GCC diagnostic ignored "-Wunreachable-code"
-#endif
-#ifdef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE
-# pragma GCC diagnostic ignored "-Wtautological-constant-out-of-range-compare"
-#endif
-/* Older CLANG (e.g. clang-3.4) seems to not support the GCC pragmas above */
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunreachable-code"
-#pragma clang diagnostic ignored "-Wtautological-compare"
-#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
-#endif
-		switch(sizeof(speed_t)) {
-			case 8:	assert (br < INT64_MAX); break;
-			case 4:	assert (br < INT32_MAX); break;
-			case 2:	assert (br < INT16_MAX); break;
-			default:	assert (br < INT_MAX);
-		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-#if (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP) && ( (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_UNREACHABLE_CODE) )
-# pragma GCC diagnostic pop
-#endif
-		baud = (speed_t)br;
-
-		for (i = 0; i < PW_MAX_BAUD; i++) {
-			if (baud == pw_baud_rates[i].name) {
-				mybaud = pw_baud_rates[i].rate;
-				break;
-			}
-		}
-
-		if (mybaud == 0) {
-			Serial.printf("Specified baudrate \"%s\" is invalid!", getval("baud_rate"));
-		}
-
-		ser_set_speed(upsfd, device_path, mybaud);
-		ser_send_char(upsfd, 0x1d); /* send ESC to take it out of menu */
-		usleep(90000);
-		send_write_command(BCMXCP_AUTHCMD, 4);
-		usleep(500000);
-		ret = command_sequence(&command, 1, answer);
-		if (ret <= 0) {
-			usleep(500000);
-			ret = command_sequence(&id_command, 1, answer);
-		}
-
-		if (ret > 0) {
-			/* Cast baud into max length unsigned, despite the POSIX
-			 * standard some systems vary in definition of this type
-			 */
-			Serial.printf("Connected to UPS on %s with baudrate %llu", port, (unsigned long long int)baud);
-			return;
-		}
-
-		Serial.printf("No response from UPS on %s with baudrate %llu", port, (unsigned long long int)baud);
-	}
-
-	Serial.printf("Attempting to autodect baudrate");
-
-	for (i=0; i<PW_MAX_BAUD; i++) {
-
-		ser_set_speed(upsfd, device_path, pw_baud_rates[i].rate);
-		ser_send_char(upsfd, 0x1d); /* send ESC to take it out of menu */
-		usleep(90000);
-		send_write_command(BCMXCP_AUTHCMD, 4);
-		usleep(500000);
-		ret = command_sequence(&command, 1, answer);
-		if (ret <= 0) {
-			usleep(500000);
-			ret = command_sequence(&id_command, 1, answer);
-		}
-
-		if (ret > 0) {
-			Serial.printf("Connected to UPS on %s with baudrate %" PRIuSIZE, port, pw_baud_rates[i].name);
-			return;
-		}
-
-		Serial.printf("No response from UPS on %s with baudrate %" PRIuSIZE, port, pw_baud_rates[i].name);
-	}
-
-	Serial.printf("Can't connect to the UPS on port %s!\n", port);
-}
-#if (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_BESIDEFUNC) && (!defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP_INSIDEFUNC) && ( (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS_BESIDEFUNC) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE_BESIDEFUNC) )
-# pragma GCC diagnostic pop
-#endif
-
-void upsdrv_initups(void)
-{
-	upsfd = ser_open(device_path);
-	pw_comm_setup(device_path);
-}
-
-void upsdrv_cleanup(void)
-{
-	/* free(dynamic_mem); */
-	ser_close(upsfd, device_path);
-}
 
 void upsdrv_reconnect(void)
 {

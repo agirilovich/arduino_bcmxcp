@@ -1,115 +1,3 @@
-/*
- bcmxcp.c - driver for powerware UPS
-
- Total rewrite of bcmxcp.c (nut ver-1.4.3)
- * Copyright (c) 2002, Martin Schroeder *
- * emes -at- geomer.de *
- * All rights reserved.*
-
- Copyright (C)
-   2004 Kjell Claesson <kjell.claesson-at-epost.tidanet.se>
-   2004 Tore Ørpetveit <tore-at-orpetveit.net>
-   2011 - 2015 Arnaud Quette <ArnaudQuette@Eaton.com>
-
- Thanks to Tore Ørpetveit <tore-at-orpetveit.net> that sent me the
- manuals for bcm/xcp.
-
- And to Fabio Di Niro <fabio.diniro@email.it> and his metasys module.
- It influenced the layout of this driver.
-
- Modified for USB by Wolfgang Ocker <weo@weo1.de>
-
- ojw0000 2007Apr5 Oliver Wilcock - modified to control individual load segments (outlet.2.shutdown.return) on Powerware PW5125.
-
- Modified to support setvar for outlet.n.delay.start by Rich Wrenn (RFW) 9-3-11.
- Modified to support setvar for outlet.n.delay.shutdown by Arnaud Quette, 9-12-11
-
-This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
-TODO List:
-
-        Extend the parsing of the Standard ID Block, to read:
-
-                Config Block Length: (High priority)
-                Give information if config block is
-                present, and how long it is, if it exist.
-                If config block exist, read the config block and parse the
-                'Length of the Extended Limits Configuration Block' for
-                extended configuration commands
-
-                Statistic map Size: (Low priority)
-                May be used to se if there is a Statistic Map.
-                It holds data on the utility power quality for
-                the past month and since last reset. Number of
-                times on battery and how long. Up time and utility
-                frequency deviation. (Only larger ups'es)
-
-                Size of Alarm History Log: (Low priority)
-                See if it have any alarm history block and enable
-                command to dump it.
-
-                Maximum Supported Command Length: ( Med. to High priority)
-                Give info about the ups receive buffer size.
-
-                Size of Alarm Block: ( Med. to High priority)
-                Make a smarter handling of the Active alarm's if we know the length
-                of the Active Alarm Block. Don't need the long loop to parse the
-                alarm's. Maybe use another way to set up the alarm struct in the
-                'init_alarm_map'.
-
-        Parse 'Communication Capabilities Block' ( Low priority)
-                Get info of the connected ports ID, number of baud rates,
-                command and respnse length.
-
-        Parse 'Communication Port List Block': ( Low priority)
-                This block gives info about the communication ports. Some ups'es
-                have multiple comport's, and use one port for eatch load segment.
-                In this block it is possible to get:
-                Number of ports. (In this List)
-                This Comport id (Which Comm Port is reporting this block.)
-                Comport id (Id for eatch port listed. The first comport ID=1)
-                Baudrate of the listed port.
-                Serial config.
-                Port usage:
-                        What this Comm Port is being used for:
-                        0 = Unknown usage, No communication occurring.
-                        1 = Undefined / Unknown communication occurring
-                        2 = Waiting to communicate with a UPS
-                        3 = Communication established with a UPS
-                        4 = Waiting to communicate with software or adapter
-                        5 = Communication established software (e.g., LanSafe)
-                                or adapter (e.g., ConnectUPS)
-                        6 = Communicating with a Display Device
-                        7 = Multi-drop Serial channel
-                        8 = Communicating with an Outlet Controller
-                Number of outlets. (Number of Outlets "assigned to" (controlled by) this Comm Port)
-                Outlet number. (Each assigned Outlet is listed (1-64))
-
-                'Set outlet parameter command (0x97)' to alter the delay
-                settings or turn the outlet on or off with a delay (0 - 32767 seconds)
-
-
-        Rewrite some parts of the driver, to minimise code duplication. (Like the instant commands)
-
-        Implement support for Password Authorization (XCP spec, §4.3.2)
-
-        Complete support for settable variables (upsh.setvar)
-*/
-
-
-#include "main.h"
 #include <math.h>       /* For ldexp() */
 #include <float.h>      /*for FLT_MAX */
 
@@ -2156,13 +2044,11 @@ static int decode_instcmd_exec(const ssize_t res, const unsigned char exec_statu
 	switch (exec_status) {
 		case BCMXCP_RETURN_ACCEPTED: {
 			Serial.printf("[%s] %s", cmdname, success_msg);
-			upsdrv_comm_good();
 			return STAT_INSTCMD_HANDLED;
 			}
 		case BCMXCP_RETURN_ACCEPTED_PARAMETER_ADJUST: {
 			Serial.printf("[%s] Parameter adjusted", cmdname);
 			Serial.printf("[%s] %s", cmdname, success_msg);
-			upsdrv_comm_good();
 			return STAT_INSTCMD_HANDLED;
 			}
 		case BCMXCP_RETURN_BUSY: {
@@ -2186,17 +2072,6 @@ static int decode_instcmd_exec(const ssize_t res, const unsigned char exec_statu
 			return STAT_INSTCMD_INVALID;
 			}
 	}
-}
-
-void upsdrv_help(void)
-{
-}
-
-/* list flags and values that you want to receive via -x */
-void upsdrv_makevartable(void)
-{
-	addvar(VAR_VALUE, "shutdown_delay", "Specify shutdown delay (seconds)");
-	addvar(VAR_VALUE, "baud_rate", "Specify communication speed (ex: 9600)");
 }
 
 int setvar (const char *varname, const char *val)
@@ -2504,13 +2379,11 @@ static int decode_setvar_exec(const ssize_t res, const unsigned char exec_status
 	switch (exec_status) {
 		case BCMXCP_RETURN_ACCEPTED: {
 			Serial.printf("[%s] %s", cmdname, success_msg);
-			upsdrv_comm_good();
 			return STAT_SET_HANDLED;
 			}
 		case BCMXCP_RETURN_ACCEPTED_PARAMETER_ADJUST: {
 			Serial.printf("[%s] Parameter adjusted", cmdname);
 			Serial.printf("[%s] %s", cmdname, success_msg);
-			upsdrv_comm_good();
 			return STAT_SET_HANDLED;
 			}
 		case BCMXCP_RETURN_BUSY: {
@@ -2561,4 +2434,35 @@ static const char *nut_find_infoval(info_lkp_t *xcp2info, const double value, co
 		Serial.printf("nut_find_infoval: no matching INFO_* value for this XCP value (%g)", value);
 	}
 	return NULL;
+}
+
+int snprintfcat(char *dst, size_t size, const char *fmt, ...)
+{
+	va_list ap;
+	size_t len = strlen(dst);
+	int ret;
+
+	size--;
+	if (len > size) {
+		/* Do not truncate existing string */
+		errno = ERANGE;
+		return -1;
+	}
+
+	va_start(ap, fmt);
+	/* Note: this code intentionally uses a caller-provided format string */
+	ret = vsnprintf(dst + len, size - len, fmt, ap);
+	va_end(ap);
+
+	dst[size] = '\0';
+
+	/* Note: there is a standards loophole here: strlen() must return size_t
+	 * and printf() family returns a signed int with negatives for errors.
+	 * In theory it can overflow a 64-vs-32 bit range, or signed-vs-unsigned.
+	 * In practice we hope to not have gigabytes-long config strings.
+	 */
+	if (ret < 0) {
+		return ret;
+	}
+	return (int)len + ret;
 }

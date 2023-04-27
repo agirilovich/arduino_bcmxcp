@@ -1,44 +1,17 @@
-#ifndef SERIAL_H_SEEN
-#define SERIAL_H_SEEN 1
-
-#include "common.h" /* for TYPE_FD_SER, possibly fallback suseconds_t */
-
-#if defined(HAVE_SYS_TERMIOS_H)
-# include <sys/termios.h>      /* for speed_t */
-#else
-# include <termios.h>
-#endif /* HAVE_SYS_TERMIOS_H */
-
 #include <unistd.h>             /* for usleep() and useconds_t, latter also might be via <sys/types.h> */
 #include <sys/types.h>
-#if defined(HAVE_SYS_SELECT_H)
-#include <sys/select.h>         /* for suseconds_t */
-#endif
 
 /* limit the amount of spew that goes in the syslog when we lose the UPS */
 #define SER_ERR_LIMIT 10	/* start limiting after 10 in a row  */
 #define SER_ERR_RATE 100	/* then only print every 100th error */
 
+void ser_open(unsigned long speed);
 
-TYPE_FD_SER ser_open_nf(const char *port);
-TYPE_FD_SER ser_open(const char *port);
-
-int ser_set_speed(TYPE_FD_SER fd, const char *port, speed_t speed);
-int ser_set_speed_nf(TYPE_FD_SER fd, const char *port, speed_t speed);
-
-
-int ser_close(TYPE_FD_SER fd, const char *port);
+void ser_close();
 
 ssize_t ser_send_char(TYPE_FD_SER fd, unsigned char ch);
 
 /* send the results of the format string with d_usec delay after each char */
-ssize_t ser_send_pace(TYPE_FD_SER fd, useconds_t d_usec, const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 3, 4)));
-
-/* send the results of the format string with no delay */
-ssize_t ser_send(TYPE_FD_SER fd, const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 2, 3)));
-
 /* send buflen bytes from buf with no delay */
 ssize_t ser_send_buf(TYPE_FD_SER fd, const void *buf, size_t buflen);
 
@@ -53,22 +26,8 @@ ssize_t ser_get_buf(TYPE_FD_SER fd, void *buf, size_t buflen, time_t d_sec, usec
 /* keep reading until buflen bytes are received or a timeout occurs */
 ssize_t ser_get_buf_len(TYPE_FD_SER fd, void *buf, size_t buflen, time_t d_sec, useconds_t d_usec);
 
-/* reads a line up to <endchar>, discarding anything else that may follow,
-   with callouts to the handler if anything matches the alertset */
-ssize_t ser_get_line_alert(TYPE_FD_SER fd, void *buf, size_t buflen, char endchar,
-	const char *ignset, const char *alertset, void handler (char ch),
-	time_t d_sec, useconds_t d_usec);
-
-/* as above, only with no alertset handling (just a wrapper) */
-ssize_t ser_get_line(TYPE_FD_SER fd, void *buf, size_t buflen, char endchar,
-	const char *ignset, time_t d_sec, useconds_t d_usec);
-
 ssize_t ser_flush_in(TYPE_FD_SER fd, const char *ignset, int verbose);
-int ser_flush_io(TYPE_FD_SER fd);
 
-/* unified failure reporting: call these often */
-void ser_comm_fail(const char *fmt, ...)
-	__attribute__ ((__format__ (__printf__, 1, 2)));
-void ser_comm_good(void);
-
-#endif	/* SERIAL_H_SEEN */
+/* Note: different method signatures instead of TYPE_FD_SER due to "const" */
+ssize_t select_read(const int fd, void *buf, const size_t buflen, const time_t d_sec, const suseconds_t d_usec);
+ssize_t select_write(const int fd, const void *buf, const size_t buflen, const time_t d_sec, const suseconds_t d_usec);

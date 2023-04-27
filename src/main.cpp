@@ -19,7 +19,15 @@ MQTTPubSubClient mqtt;
 const char *Topic    = "/homeassistant/sensor/well/config";   // Topic in MQTT to publish
 const String ConfigMessage  = String("{\"name\":") + DEVICE_BOARD_NAME + String(", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": StateTopic}");       // Message for Autodiscovery
 
-#include "main.h"
+const unsigned long t_speed = SPEED_FD;
+#define TYPE_FD_SER TYPE_FD
+
+/* Buffer sizes used for various functions */
+#define SMALLBUF	512
+#define LARGEBUF	1024
+
+#define useconds_t	unsigned long int
+
 
 void setup() {
   Serial.begin(9600);
@@ -55,10 +63,8 @@ void setup() {
   initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, Topic, ConfigMessage);
 
   //Open connection to UPS
-  upsdrv_initups();
+  upsdrv_initups(t_speed);
 
-  // print your version information
-  //upsdrv_banner();	
   // prep data, settings for UPS monitoring
   //upsdrv_initinfo();
 
