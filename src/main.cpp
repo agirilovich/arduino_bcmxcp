@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 // Load Wi-Fi library
 #include <WiFi.h>
 
@@ -22,11 +24,9 @@ const String ConfigMessage  = String("{\"name\":") + DEVICE_BOARD_NAME + String(
 const unsigned long t_speed = SPEED_FD;
 #define TYPE_FD_SER TYPE_FD
 
-/* Buffer sizes used for various functions */
-#define SMALLBUF	512
-#define LARGEBUF	1024
-
 #define useconds_t	unsigned long int
+
+#include "bcmxcp_io.h"
 
 
 void setup() {
@@ -66,7 +66,7 @@ void setup() {
   upsdrv_initups(t_speed);
 
   // prep data, settings for UPS monitoring
-  //upsdrv_initinfo();
+  upsdrv_initinfo();
 
 }
 void loop() {

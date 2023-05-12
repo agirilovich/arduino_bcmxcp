@@ -37,11 +37,11 @@ static void send_command(unsigned char *command, size_t command_length)
 	while (retry++ < PW_MAX_TRY) {
 
 		if (retry == PW_MAX_TRY) {
-			ser_send_char(upsfd, 0x1d); /* last retry is preceded by a ESC.*/
+			ser_send_char(0x1d); /* last retry is preceded by a ESC.*/
 			usleep(250000);
 		}
 
-		sent = ser_send_buf(upsfd, sbuf, command_length);
+		sent = ser_send_buf(sbuf, command_length);
 
 		if (sent < 0) {
 			Serial.printf("%s(): error reading from ser_send_buf()");
@@ -76,7 +76,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 
 		do {
 			/* Read PW_COMMAND_START_BYTE byte */
-			res = ser_get_char(upsfd, my_buf, 1, 0);
+			res = ser_get_char(my_buf, 1, 0);
 
 			if (res != 1) {
 				Serial.printf("Receive error (PW_COMMAND_START_BYTE): %" PRIiSIZE ", cmd=%x!!!\n",
@@ -94,7 +94,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		}
 
 		/* Read block number byte */
-		res = ser_get_char(upsfd, my_buf + 1, 1, 0);
+		res = ser_get_char(my_buf + 1, 1, 0);
 
 		if (res != 1) {
 			Serial.printf("Receive error (Block number): %" PRIiSIZE "!!!\n", res);
@@ -123,7 +123,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		}
 
 		/* Read data length byte */
-		res = ser_get_char(upsfd, my_buf + 2, 1, 0);
+		res = ser_get_char(my_buf + 2, 1, 0);
 
 		if (res != 1) {
 			Serial.printf("Receive error (length): %" PRIiSIZE "!!!\n", res);
@@ -138,7 +138,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		}
 
 		/* Read sequence byte */
-		res = ser_get_char(upsfd, my_buf + 3, 1, 0);
+		res = ser_get_char(my_buf + 3, 1, 0);
 
 		if (res != 1) {
 			Serial.printf("Receive error (sequence): %" PRIiSIZE "!!!\n", res);
@@ -159,7 +159,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		pre_sequence = sequence;
 
 		/* Try to read all the remaining bytes */
-		res = ser_get_buf_len(upsfd, my_buf + 4, length, 1, 0);
+		res = ser_get_buf_len(my_buf + 4, length, 1, 0);
 		if (res < 0) {
 			Serial.printf("%s(): ser_get_buf_len() returned error code %" PRIiSIZE, __func__, res);
 			return res;
@@ -171,7 +171,7 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		}
 
 		/* Get the checksum byte */
-		res = ser_get_char(upsfd, my_buf + (4 + length), 1, 0);
+		res = ser_get_char(my_buf + (4 + length), 1, 0);
 
 		if (res != 1) {
 			Serial.printf("Receive error (checksum): %" PRIxSIZE "!!!\n", res);
@@ -203,7 +203,7 @@ static ssize_t command_sequence(unsigned char *command, size_t command_length, u
 	while (retry++ < PW_MAX_TRY) {
 
 		if (retry == PW_MAX_TRY) {
-			ser_flush_in(upsfd, "", 0);
+			ser_flush_in();
 		}
 
 		send_write_command(command, command_length);
@@ -248,7 +248,7 @@ ssize_t command_write_sequence(unsigned char *command, size_t command_length, un
 
 void upsdrv_initups(unsigned long speed)
 {
-	upsfd = ser_open(speed);
+	ser_open(speed);
 }
 
 

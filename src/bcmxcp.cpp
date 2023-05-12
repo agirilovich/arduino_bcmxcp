@@ -5,6 +5,8 @@
 #include "bcmxcp_io.h"
 #include "bcmxcp.h"
 
+#include "dstate.h"
+
 #define DRIVER_NAME    "BCMXCP UPS driver"
 #define DRIVER_VERSION "0.32"
 
@@ -1034,6 +1036,36 @@ void init_ext_vars(void)
 	}
 }
 
+int snprintfcat(char *dst, size_t size, const char *fmt, ...)
+{
+	va_list ap;
+	size_t len = strlen(dst);
+	int ret;
+
+	size--;
+	if (len > size) {
+		/* Do not truncate existing string */
+		errno = ERANGE;
+		return -1;
+	}
+
+	va_start(ap, fmt);
+	/* Note: this code intentionally uses a caller-provided format string */
+	ret = vsnprintf(dst + len, size - len, fmt, ap);
+	va_end(ap);
+
+	dst[size] = '\0';
+
+	/* Note: there is a standards loophole here: strlen() must return size_t
+	 * and printf() family returns a signed int with negatives for errors.
+	 * In theory it can overflow a 64-vs-32 bit range, or signed-vs-unsigned.
+	 * In practice we hope to not have gigabytes-long config strings.
+	 */
+	if (ret < 0) {
+		return ret;
+	}
+	return (int)len + ret;
+}
 
 void init_config(void)
 {
@@ -2434,35 +2466,4 @@ static const char *nut_find_infoval(info_lkp_t *xcp2info, const double value, co
 		Serial.printf("nut_find_infoval: no matching INFO_* value for this XCP value (%g)", value);
 	}
 	return NULL;
-}
-
-int snprintfcat(char *dst, size_t size, const char *fmt, ...)
-{
-	va_list ap;
-	size_t len = strlen(dst);
-	int ret;
-
-	size--;
-	if (len > size) {
-		/* Do not truncate existing string */
-		errno = ERANGE;
-		return -1;
-	}
-
-	va_start(ap, fmt);
-	/* Note: this code intentionally uses a caller-provided format string */
-	ret = vsnprintf(dst + len, size - len, fmt, ap);
-	va_end(ap);
-
-	dst[size] = '\0';
-
-	/* Note: there is a standards loophole here: strlen() must return size_t
-	 * and printf() family returns a signed int with negatives for errors.
-	 * In theory it can overflow a 64-vs-32 bit range, or signed-vs-unsigned.
-	 * In practice we hope to not have gigabytes-long config strings.
-	 */
-	if (ret < 0) {
-		return ret;
-	}
-	return (int)len + ret;
 }

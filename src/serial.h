@@ -9,24 +9,23 @@ void ser_open(unsigned long speed);
 
 void ser_close();
 
-ssize_t ser_send_char(TYPE_FD_SER fd, unsigned char ch);
+void ser_send_char(unsigned char ch);
 
 /* send the results of the format string with d_usec delay after each char */
 /* send buflen bytes from buf with no delay */
-ssize_t ser_send_buf(TYPE_FD_SER fd, const void *buf, size_t buflen);
+ssize_t ser_send_buf(const void *buf, size_t buflen);
 
 /* send buflen bytes from buf with d_usec delay after each char */
-ssize_t ser_send_buf_pace(TYPE_FD_SER fd, useconds_t d_usec, const void *buf,
-	size_t buflen);
+ssize_t ser_send_buf_pace(const void *buf,	size_t buflen);
 
-ssize_t ser_get_char(TYPE_FD_SER fd, void *ch, time_t d_sec, useconds_t d_usec);
+ssize_t ser_get_char(void *ch, time_t d_sec, useconds_t d_usec);
 
-ssize_t ser_get_buf(TYPE_FD_SER fd, void *buf, size_t buflen, time_t d_sec, useconds_t d_usec);
+ssize_t ser_get_buf(void *buf, size_t buflen, time_t d_sec, useconds_t d_usec);
 
 /* keep reading until buflen bytes are received or a timeout occurs */
-ssize_t ser_get_buf_len(TYPE_FD_SER fd, void *buf, size_t buflen, time_t d_sec, useconds_t d_usec);
+ssize_t ser_get_buf_len(void *buf, size_t buflen, time_t d_sec, useconds_t d_usec);
 
-ssize_t ser_flush_in(TYPE_FD_SER fd, const char *ignset, int verbose);
+void ser_flush_in();
 
 /* Note: different method signatures instead of TYPE_FD_SER due to "const" */
 ssize_t select_read(const int fd, void *buf, const size_t buflen, const time_t d_sec, const suseconds_t d_usec);
