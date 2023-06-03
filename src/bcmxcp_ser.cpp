@@ -1,19 +1,17 @@
-#include "main.h"
 #include "bcmxcp.h"
 #include "bcmxcp_io.h"
-#include "serial.h"
+#include <HardwareSerial.h>
 
+HardwareSerial UPSSerial(2);
+
+#define RXD1 12
+#define TXD1 13
 
 static void send_command(unsigned char *command, size_t command_length)
 {
 	int retry = 0;
 	ssize_t sent;
 	unsigned char sbuf[1024];
-
-	if (command_length > UCHAR_MAX) {
-		upsdebugx (3, "%s: ERROR: command_length too long for the character protocol", __func__);
-		return;
-	}
 
 	/* Prepare the send buffer */
 	sbuf[0] = PW_COMMAND_START_BYTE;
@@ -25,19 +23,17 @@ static void send_command(unsigned char *command, size_t command_length)
 	sbuf[command_length] = calc_checksum(sbuf);
 	command_length += 1;
 
-	upsdebug_hex (3, "send_command", sbuf, command_length);
-
 	while (retry++ < PW_MAX_TRY) {
 
 		if (retry == PW_MAX_TRY) {
-			ser_send_char(upsfd, 0x1d); /* last retry is preceded by a ESC.*/
+			UPSSerial.write(0x1d);
 			usleep(250000);
 		}
 
-		sent = ser_send_buf(upsfd, sbuf, command_length);
+		sent = UPSSerial.write(sbuf, command_length);
 
 		if (sent < 0) {
-			Serial.printf("%s(): error reading from ser_send_buf()");
+			Serial.printf("%s(): error reading from UPSSerial write");
 			return;
 		}
 
@@ -64,12 +60,10 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 
 		do {
 			/* Read PW_COMMAND_START_BYTE byte */
-			res = ser_get_char(upsfd, my_buf, 1, 0);
+			res = UPSSerial.readBytes(my_buf, 1);
 
 			if (res != 1) {
-				upsdebugx(1,
-					"Receive error (PW_COMMAND_START_BYTE): %" PRIiSIZE ", cmd=%x!!!\n",
-					res, command);
+				Serial.printf("Receive error (PW_COMMAND_START_BYTE): %",  ", cmd=%x!!!\n", res, command);
 				return -1;
 			}
 
@@ -78,15 +72,15 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		} while ((my_buf[0] != PW_COMMAND_START_BYTE) && (start < 128));
 
 		if (start == 128) {
-			ser_comm_fail("Receive error (PW_COMMAND_START_BYTE): packet not on start!!%x\n", my_buf[0]);
+			Serial.printf("Receive error (PW_COMMAND_START_BYTE): packet not on start!!%x\n", my_buf[0]);
 			return -1;
 		}
 
 		/* Read block number byte */
-		res = ser_get_char(upsfd, my_buf + 1, 1, 0);
+		res = UPSSerial.readBytes(my_buf + 1, 1);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (Block number): %" PRIiSIZE "!!!\n", res);
+			Serial.printf("Receive error (Block number): %", "!!!\n", res);
 			return -1;
 		}
 
@@ -94,43 +88,43 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 
 		if (command <= 0x43) {
 			if ((command - 0x30) != block_number) {
-				ser_comm_fail("Receive error (Request command): %x!!!\n", block_number);
+				Serial.printf("Receive error (Request command): %x!!!\n", block_number);
 				return -1;
 			}
 		}
 
 		if (command >= 0x89) {
 			if ((command == 0xA0) && (block_number != 0x01)) {
-				ser_comm_fail("Receive error (Requested only mode command): %x!!!\n", block_number);
+				Serial.printf("Receive error (Requested only mode command): %x!!!\n", block_number);
 				return -1;
 			}
 
 			if ((command != 0xA0) && (block_number != 0x09)) {
-				ser_comm_fail("Receive error (Control command): %x!!!\n", block_number);
+				Serial.printf("Receive error (Control command): %x!!!\n", block_number);
 				return -1;
 			}
 		}
 
 		/* Read data length byte */
-		res = ser_get_char(upsfd, my_buf + 2, 1, 0);
+		res = UPSSerial.readBytes(my_buf + 2, 1);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (length): %" PRIiSIZE "!!!\n", res);
+			Serial.printf("Receive error (length): %", "!!!\n", res);
 			return -1;
 		}
 
 		length = (unsigned char)my_buf[2];
 
 		if (length < 1) {
-			ser_comm_fail("Receive error (length): packet length %" PRIxSIZE "!!!\n", length);
+			Serial.printf("Receive error (length): packet length % !!!\n", length);
 			return -1;
 		}
 
 		/* Read sequence byte */
-		res = ser_get_char(upsfd, my_buf + 3, 1, 0);
+		res = UPSSerial.readBytes(my_buf + 3, 1);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (sequence): %" PRIiSIZE "!!!\n", res);
+			Serial.printf("Receive error (sequence): %", "!!!\n", res);
 			return -1;
 		}
 
@@ -141,35 +135,35 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		}
 
 		if ((sequence & 0x07) != (pre_sequence + 1)) {
-			ser_comm_fail("Not the right sequence received %x!!!\n", sequence);
+			Serial.printf("Not the right sequence received %x!!!\n", sequence);
 			return -1;
 		}
 
 		pre_sequence = sequence;
 
 		/* Try to read all the remaining bytes */
-		res = ser_get_buf_len(upsfd, my_buf + 4, length, 1, 0);
+		res = UPSSerial.readBytes(my_buf + 4, length);
 		if (res < 0) {
-			ser_comm_fail("%s(): ser_get_buf_len() returned error code %" PRIiSIZE, __func__, res);
+			Serial.printf("%s(): Serial read returned error code %", __func__, res);
 			return res;
 		}
 
 		if ((size_t)res != length) {
-			ser_comm_fail("Receive error (data): got %" PRIiSIZE " bytes instead of %" PRIuSIZE "!!!\n", res, length);
+			Serial.printf("Receive error (data): got % bytes instead of % !!!\n", res, length);
 			return -1;
 		}
 
 		/* Get the checksum byte */
-		res = ser_get_char(upsfd, my_buf + (4 + length), 1, 0);
+		res = UPSSerial.readBytes(my_buf + (4 + length), 1);
 
 		if (res != 1) {
-			ser_comm_fail("Receive error (checksum): %" PRIxSIZE "!!!\n", res);
+			Serial.printf("Receive error (checksum): % !!!\n", res);
 			return -1;
 		}
 
 		/* now we have the whole answer from the ups, we can checksum it */
 		if (!checksum_test(my_buf)) {
-			ser_comm_fail("checksum error! ");
+			Serial.printf("checksum error! ");
 			return -1;
 		}
 
@@ -177,8 +171,6 @@ ssize_t get_answer(unsigned char *data, unsigned char command)
 		end_length += length;
 
 	}
-
-	upsdebug_hex (5, "get_answer", data, end_length);
 
 	assert(end_length < SSIZE_MAX);
 	return (ssize_t)end_length;
@@ -192,7 +184,7 @@ static ssize_t command_sequence(unsigned char *command, size_t command_length, u
 	while (retry++ < PW_MAX_TRY) {
 
 		if (retry == PW_MAX_TRY) {
-			ser_flush_in(upsfd, "", 0);
+			UPSSerial.flush();
 		}
 
 		send_write_command(command, command_length);
@@ -215,7 +207,7 @@ ssize_t command_read_sequence(unsigned char command, unsigned char *answer)
 	bytes_read = command_sequence(&command, 1, answer);
 
 	if (bytes_read < 1) {
-		ser_comm_fail("Error executing command");
+		Serial.printf("Error executing command");
 	}
 
 	return bytes_read;
@@ -229,7 +221,7 @@ ssize_t command_write_sequence(unsigned char *command, size_t command_length, un
 	bytes_read = command_sequence(command, command_length, answer);
 
 	if (bytes_read < 1) {
-		ser_comm_fail("Error executing command");
+		Serial.printf("Error executing command");
 	}
 
 	return bytes_read;
@@ -242,7 +234,5 @@ void upsdrv_comm_good()
 
 void upsdrv_initups(void)
 {
-	//define UART3 port
-    HardwareSerial USSerial(USART3);
-    USSerial.begin(9600);
+  UPSSerial.begin(9600, SERIAL_8N1, RXD1, TXD1);
 }
