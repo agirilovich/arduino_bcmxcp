@@ -22,44 +22,15 @@
 #ifndef DSTATE_H_SEEN
 #define DSTATE_H_SEEN 1
 
-#include "common.h"
-
 #include "state.h"
-#include "attribute.h"
 
-#include "parseconf.h"
 #include "upshandler.h"
 
-#include "main.h"	/* for set_exit_flag() */
-
-#ifdef WIN32
-# include "wincompat.h"
-#endif
-
-#define DS_LISTEN_BACKLOG 16
-#define DS_MAX_READ 256		/* don't read forever from upsd */
-
-#ifndef MAX_STRING_SIZE
-#define MAX_STRING_SIZE	128
-#endif
-
-/* track client connections */
-typedef struct conn_s {
-	TYPE_FD	fd;
-#ifdef WIN32
-	char    buf[LARGEBUF];
-	OVERLAPPED read_overlapped;
-#endif
-	PCONF_CTX_t	ctx;
-	struct conn_s	*prev;
-	struct conn_s	*next;
-} conn_t;
-
-	extern	struct	ups_handler	upsh;
+extern	struct	ups_handler	upsh;
 
 	/* asynchronous (nonblocking) Vs synchronous (blocking) I/O
 	 * Defaults to nonblocking, for backward compatibility */
-	extern	int	do_synchronous;
+extern	int	do_synchronous;
 
 char * dstate_init(const char *prog, const char *devname);
 int dstate_poll_fds(struct timeval timeout, TYPE_FD extrafd);
@@ -80,7 +51,6 @@ int dstate_delrange(const char *var, const int min, const int max);
 int dstate_delcmd(const char *cmd);
 void dstate_free(void);
 const st_tree_t *dstate_getroot(void);
-const cmdlist_t *dstate_getcmdlist(void);
 
 void dstate_dataok(void);
 void dstate_datastale(void);

@@ -22,8 +22,6 @@
 #ifndef NUT_STATE_H_SEEN
 #define NUT_STATE_H_SEEN 1
 
-#include "extstate.h"
-
 #ifdef __cplusplus
 /* *INDENT-OFF* */
 extern "C" {
@@ -31,6 +29,14 @@ extern "C" {
 #endif
 
 #define ST_SOCK_BUF_LEN 512
+
+
+/* list of instant commands */
+typedef struct cmdlist_s {
+	char	*name;
+	struct cmdlist_s	*next;
+} cmdlist_t;
+
 
 typedef struct st_tree_s {
 	char	*var;
@@ -45,9 +51,6 @@ typedef struct st_tree_s {
 	int	flags;
 	long	aux;
 
-	struct enum_s		*enum_list;
-	struct range_s		*range_list;
-
 	struct st_tree_s	*left;
 	struct st_tree_s	*right;
 } st_tree_t;
@@ -59,8 +62,6 @@ int state_setaux(st_tree_t *root, const char *var, const char *auxs);
 const char *state_getinfo(st_tree_t *root, const char *var);
 int state_getflags(st_tree_t *root, const char *var);
 long state_getaux(st_tree_t *root, const char *var);
-const enum_t *state_getenumlist(st_tree_t *root, const char *var);
-const range_t *state_getrangelist(st_tree_t *root, const char *var);
 void state_setflags(st_tree_t *root, const char *var, size_t numflags, char **flags);
 int state_addcmd(cmdlist_t **list, const char *cmd);
 void state_infofree(st_tree_t *node);
