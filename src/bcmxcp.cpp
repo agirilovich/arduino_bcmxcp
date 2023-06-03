@@ -113,32 +113,8 @@ TODO List:
 #include <math.h>       /* For ldexp() */
 #include <float.h>      /*for FLT_MAX */
 
-#include "nut_stdint.h" /* for uint8_t, uint16_t, uint32_t, ... */
 #include "bcmxcp_io.h"
 #include "bcmxcp.h"
-
-#define DRIVER_NAME    "BCMXCP UPS driver"
-#define DRIVER_VERSION "0.32"
-
-#define MAX_NUT_NAME_LENGTH 128
-#define NUT_OUTLET_POSITION   7
-
-/* driver description structure */
-upsdrv_info_t upsdrv_info = {
-	DRIVER_NAME,
-	DRIVER_VERSION,
-	"Martin Schroeder <emes@geomer.de>\n" \
-	"Kjell Claesson <kjell.claesson@epost.tidanet.se>\n" \
-	"Tore Ørpetveit <tore@orpetveit.net>\n" \
-	"Arnaud Quette <ArnaudQuette@Eaton.com>\n" \
-	"Wolfgang Ocker <weo@weo1.de>\n" \
-	"Oliver Wilcock\n" \
-	"Prachi Gandhi <prachisgandhi@eaton.com>\n" \
-	"Alf Høgemark <alf@i100>\n" \
-	"Gavrilov Igor",
-	DRV_STABLE,
-	{ &comm_upsdrv_info, NULL }
-};
 
 static uint16_t get_word(const unsigned char*);
 static uint32_t get_long(const unsigned char*);
@@ -884,18 +860,18 @@ void decode_meter_map_entry(const unsigned char *entry, const unsigned char form
 	if (format == 0xf0) {
 		/* Long integer */
 		lValue = get_long(entry);
-		snprintf(value, 127, "%d", (int)lValue);
+		Serial.printf(value, 127, "%d", (int)lValue);
 	}
 	else if ((format & 0xf0) == 0xf0) {
 		/* Fixed point integer */
 		fValue = get_long(entry) / ldexp(1, format & 0x0f);
-		snprintf(value, 127, "%.2f", fValue);
+		Serial.printf(value, 127, "%.2f", fValue);
 	}
 	else if (format <= 0x97) {
 		/* Floating point */
 		fValue = get_float(entry);
 		/* Format is packed BCD */
-		snprintf(sFormat, 31, "%%%d.%df", ((format & 0xf0) >> 4), (format & 0x0f));
+		Serial.printf(sFormat, 31, "%%%d.%df", ((format & 0xf0) >> 4), (format & 0x0f));
 #ifdef HAVE_PRAGMAS_FOR_GCC_DIAGNOSTIC_IGNORED_FORMAT_NONLITERAL
 #pragma GCC diagnostic push
 #endif
@@ -905,7 +881,7 @@ void decode_meter_map_entry(const unsigned char *entry, const unsigned char form
 #ifdef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_FORMAT_SECURITY
 #pragma GCC diagnostic ignored "-Wformat-security"
 #endif
-		snprintf(value, 127, sFormat, fValue);
+		Serial.printf(value, 127, sFormat, fValue);
 #ifdef HAVE_PRAGMAS_FOR_GCC_DIAGNOSTIC_IGNORED_FORMAT_NONLITERAL
 #pragma GCC diagnostic pop
 #endif
@@ -913,7 +889,7 @@ void decode_meter_map_entry(const unsigned char *entry, const unsigned char form
 	else if (format == 0xe2) {
 		/* Seconds */
 		lValue = get_long(entry);
-		snprintf(value, 127, "%d", (int)lValue);
+		Serial.printf(value, 127, "%d", (int)lValue);
 	}
 	else if (format == 0xe0) {
 		/* Date */
@@ -926,12 +902,12 @@ void decode_meter_map_entry(const unsigned char *entry, const unsigned char form
 		/* Check format type */
 		if (cc & 0x80) {
 			/* Month:Day format */
-			snprintf(value, 127, "%d%d/%d%d/%d%d%d%d", ((dd & 0xf0) >> 4), (dd & 0x0f), ((mm & 0xf0) >> 4), (mm & 0x0f), (((cc & 0x7f) & 0xf0) >> 4), ((cc & 0x7f) & 0x0f), ((yy & 0xf0) >> 4), (yy & 0x0f));
+			Serial.printf(value, 127, "%d%d/%d%d/%d%d%d%d", ((dd & 0xf0) >> 4), (dd & 0x0f), ((mm & 0xf0) >> 4), (mm & 0x0f), (((cc & 0x7f) & 0xf0) >> 4), ((cc & 0x7f) & 0x0f), ((yy & 0xf0) >> 4), (yy & 0x0f));
 		}
 		else {
 			/* Julian format */
 			/* TODO test this, unsure if the day part is correct, i.e. how we use the two bytes mm and dd to calculate the number of julian days */
-			snprintf(value, 127, "%d%d%d%d:%d%d%d", (((cc & 0x7f) & 0xf0) >> 4), ((cc & 0x7f) & 0x0f), ((yy & 0xf0) >> 4), (yy & 0x0f), (mm & 0x0f), ((dd & 0xf0) >> 4), (dd & 0x0f));
+			Serial.printf(value, 127, "%d%d%d%d:%d%d%d", (((cc & 0x7f) & 0xf0) >> 4), ((cc & 0x7f) & 0x0f), ((yy & 0xf0) >> 4), (yy & 0x0f), (mm & 0x0f), ((dd & 0xf0) >> 4), (dd & 0x0f));
 		}
 	}
 	else if (format == 0xe1) {
@@ -942,11 +918,11 @@ void decode_meter_map_entry(const unsigned char *entry, const unsigned char form
 		mm = entry[2];
 		hh = entry[3];
 
-		snprintf(value, 127, "%d%d:%d%d:%d%d.%d%d", ((hh & 0xf0) >> 4), (hh & 0x0f), ((mm & 0xf0) >> 4), (mm & 0x0f), ((ss & 0xf0) >> 4), (ss & 0x0f), ((cc & 0xf0) >> 4), (cc & 0x0f));
+		Serial.printf(value, 127, "%d%d:%d%d:%d%d.%d%d", ((hh & 0xf0) >> 4), (hh & 0x0f), ((mm & 0xf0) >> 4), (mm & 0x0f), ((ss & 0xf0) >> 4), (ss & 0x0f), ((cc & 0xf0) >> 4), (cc & 0x0f));
 	}
 	else {
 		/* Unknown format */
-		snprintf(value, 127, "???");
+		Serial.printf(value, 127, "???");
 		return;
 	}
 	return;
@@ -1040,7 +1016,7 @@ unsigned char init_outlet(unsigned char len)
 
 	res = command_read_sequence(PW_OUT_MON_BLOCK_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.println("Could not communicate with the ups");
 	else
 		upsdebugx(1, "init_outlet(%i), res=%" PRIiSIZE, len, res);
 
@@ -1053,19 +1029,19 @@ unsigned char init_outlet(unsigned char len)
 	for (num = 1 ; num <= num_outlet ; num++) {
 		outlet_num = answer[iIndex++];
 		upsdebugx(2, "Outlet number: %u", outlet_num);
-		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.id", num);
+		Serial.printf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.id", num);
 		dstate_setinfo(outlet_name, "%u", outlet_num);
 
 		outlet_state = answer[iIndex++];
 		upsdebugx(2, "Outlet state: %u", outlet_state);
-		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.status", num);
+		Serial.printf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.status", num);
 		if (outlet_state>0 && outlet_state <9)
 			dstate_setinfo(outlet_name, "%s", OutletStatus[outlet_state]);
 
 		auto_dly_off = get_word(answer+iIndex);
 		iIndex += 2;
 		upsdebugx(2, "Auto delay off: %u", auto_dly_off);
-		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.delay.shutdown", num);
+		Serial.printf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.delay.shutdown", num);
 		dstate_setinfo(outlet_name, "%u", auto_dly_off);
 		dstate_setflags(outlet_name, ST_FLAG_RW | ST_FLAG_STRING);
 		dstate_setaux(outlet_name, 5);
@@ -1073,7 +1049,7 @@ unsigned char init_outlet(unsigned char len)
 		auto_dly_on = get_word(answer+iIndex);
 		iIndex += 2;
 		upsdebugx(2, "Auto delay on: %u", auto_dly_on);
-		snprintf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.delay.start", num);
+		Serial.printf(outlet_name, sizeof(outlet_name)-1, "outlet.%u.delay.start", num);
 		dstate_setinfo(outlet_name, "%u", auto_dly_on);
 		dstate_setflags(outlet_name, ST_FLAG_RW | ST_FLAG_STRING);
 		dstate_setaux(outlet_name, 5);
@@ -1099,7 +1075,7 @@ void init_ext_vars(void)
 
 	length = command_write_sequence(cbuf, 4, answer);
 	if (length <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.println("Could not communicate with the ups");
 	if (length < 4)  /* UPS doesn't have configurable vars */
 		return;
 	for (index=3; index < length; index++) {
@@ -1174,7 +1150,7 @@ void init_config(void)
 
 	res = command_read_sequence(PW_CONFIG_BLOCK_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.println("Could not communicate with the ups");
 
 	/* Get validation mask for status bitmap */
 	bcmxcp_status.topology_mask = answer[BCMXCP_CONFIG_BLOCK_HW_MODULES_INSTALLED_BYTE3];
@@ -1205,12 +1181,12 @@ void init_config(void)
 	 */
 
 	/* UPS serial number */
-	snprintf(sValue, sizeof(sValue), "%s", answer + BCMXCP_CONFIG_BLOCK_SERIAL_NUMBER);
+	Serial.printf(sValue, sizeof(sValue), "%s", answer + BCMXCP_CONFIG_BLOCK_SERIAL_NUMBER);
 	if (sValue[0] != '\0')
 		dstate_setinfo("ups.serial", "%s", sValue);
 
 	/* UPS Part Number*/
-	snprintf(sPartNumber, sizeof(sPartNumber), "%s", answer + BCMXCP_CONFIG_BLOCK_PART_NUMBER);
+	Serial.printf(sPartNumber, sizeof(sPartNumber), "%s", answer + BCMXCP_CONFIG_BLOCK_PART_NUMBER);
 	if (sPartNumber[0] != '\0')
 		dstate_setinfo("device.part", "%s", sPartNumber);
 #ifdef HAVE_PRAGMAS_FOR_GCC_DIAGNOSTIC_IGNORED_FORMAT_TRUNCATION
@@ -1226,7 +1202,7 @@ void init_limit(void)
 
 	res = command_read_sequence(PW_LIMIT_BLOCK_REQ, answer);
 	if (res <= 0) {
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.println("Could not communicate with the ups");
 	}
 
 	/* Nominal input voltage */
@@ -1343,7 +1319,7 @@ void init_topology(void)
 
 	res = command_read_sequence(PW_UPS_TOP_DATA_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.println("Could not communicate with the ups");
 
 	value = get_word(answer);
 
@@ -1412,8 +1388,7 @@ void upsdrv_initinfo(void)
 		if (tmp >= 0) {
 			bcmxcp_status.shutdowndelay = (unsigned int)tmp;
 		} else {
-			fatal_with_errno(EXIT_FAILURE,
-				"Invalid setting for shutdown_delay: %s",
+			Serial.println("Invalid setting for shutdown_delay: %s",
 				getval("shutdown_delay"));
 		}
 	} else {
@@ -1423,7 +1398,7 @@ void upsdrv_initinfo(void)
 	/* Get information on UPS from UPS ID block */
 	res = command_read_sequence(PW_ID_BLOCK_REQ, answer);
 	if (res <= 0)
-		fatal_with_errno(EXIT_FAILURE, "Could not communicate with the ups");
+		Serial.println("Could not communicate with the ups");
 
 	/* Get number of CPU's in ID block */
 	len = answer[iIndex++];
@@ -1483,17 +1458,17 @@ void upsdrv_initinfo(void)
 
 	/* Extract and reformat the model string */
 	pTmp = (char*) xmalloc(len+15);
-	snprintf(pTmp, len + 1, "%s", answer + iIndex);
+	Serial.printf(pTmp, len + 1, "%s", answer + iIndex);
 	pTmp[len+1] = 0;
 	iIndex += len;
 	/* power rating in the model name is in the form "<rating>i"
 	 * ie "1500i", "500i", ...
 	 * some models already includes it, so check to avoid duplication */
-	snprintf(power_rating, sizeof(power_rating), "%ii", iRating);
+	Serial.printf(power_rating, sizeof(power_rating), "%ii", iRating);
 	if (strstr(pTmp, power_rating) == NULL) {
 		snprintfcat(pTmp, len+10, " %s", power_rating);
 	}
-	dstate_setinfo("ups.model", "%s", str_rtrim(pTmp, ' '));
+	dstate_setinfo("ups.model", "%s", pTmp);
 	free(pTmp);
 
 	/* Get meter map info from ups, and init our map */
@@ -1559,15 +1534,15 @@ void upsdrv_initinfo(void)
 	at least 2 outlet block. 5115 has only one outlet, but has outlet block! */
 	if (outlet_block_len > 8) {
 		if (outlet_block_len > 255)
-			fatal_with_errno(EXIT_FAILURE, "outlet_block_len overflow: %u", outlet_block_len);
+			Serial.println("outlet_block_len overflow: %u", outlet_block_len);
 		len = init_outlet((unsigned char)outlet_block_len /* arg ignored */);
 
 		for (res = 1 ; (unsigned int)res <= (unsigned int)len ; res++) {
-			snprintf(outlet_name, sizeof(outlet_name) - 1, "outlet.%" PRIiSIZE ".shutdown.return", res);
+			Serial.printf(outlet_name, sizeof(outlet_name) - 1, "outlet.%" PRIiSIZE ".shutdown.return", res);
 			dstate_addcmd(outlet_name);
-			snprintf(outlet_name, sizeof(outlet_name) - 1, "outlet.%" PRIiSIZE ".load.on", res);
+			Serial.printf(outlet_name, sizeof(outlet_name) - 1, "outlet.%" PRIiSIZE ".load.on", res);
 			dstate_addcmd(outlet_name);
-			snprintf(outlet_name, sizeof(outlet_name) - 1, "outlet.%" PRIiSIZE ".load.off", res);
+			Serial.printf(outlet_name, sizeof(outlet_name) - 1, "outlet.%" PRIiSIZE ".load.off", res);
 			dstate_addcmd(outlet_name);
 		}
 	}
@@ -1652,7 +1627,7 @@ void upsdrv_updateinfo(void)
 	at least 2 outlet block. 5115 has only one outlet, but has outlet block. */
 	if (outlet_block_len > 8) {
 		if (outlet_block_len > 255)
-			fatal_with_errno(EXIT_FAILURE, "outlet_block_len overflow: %u", outlet_block_len);
+			Serial.println("outlet_block_len overflow: %u", outlet_block_len);
 		init_outlet((unsigned char)outlet_block_len /* arg ignored */);
 	}
 
@@ -1961,7 +1936,7 @@ void upsdrv_shutdown(void)
 		return;
 	}
 
-	fatalx(EXIT_FAILURE, "Shutdown failed!");
+	Serial.println("Shutdown failed!");
 }
 
 
@@ -1990,7 +1965,7 @@ static int instcmd(const char *cmdname, const char *extra)
 		res = command_write_sequence(cbuf, 3, answer);
 
 		sec = (256 * (unsigned char)answer[3]) + (unsigned char)answer[2];
-		snprintf(success_msg, sizeof(success_msg)-1, "Going down in %d sec", sec);
+		Serial.printf(success_msg, sizeof(success_msg)-1, "Going down in %d sec", sec);
 
 		return decode_instcmd_exec(res, (unsigned char)answer[0], cmdname, success_msg);
 	}
@@ -2112,7 +2087,7 @@ static int instcmd(const char *cmdname, const char *extra)
 		sleep(PW_SLEEP); /* Need to. Have to wait at least 0,25 sec max 16 sec */
 
 		/* Get the shutdown delay, if any */
-		snprintf(varname, sizeof(varname)-1, "outlet.%c.delay.shutdown", cmdname[NUT_OUTLET_POSITION]);
+		Serial.printf(varname, sizeof(varname)-1, "outlet.%c.delay.shutdown", cmdname[NUT_OUTLET_POSITION]);
 		if ((varvalue = dstate_getinfo(varname)) != NULL) {
 			sddelay = atoi(varvalue);
 		}
@@ -2132,7 +2107,7 @@ static int instcmd(const char *cmdname, const char *extra)
 		res = command_write_sequence(cbuf, 4, answer);
 
 		sec = (256 * (unsigned char)answer[3]) + (unsigned char)answer[2];
-		snprintf(success_msg, sizeof(success_msg)-1, "Going down in %d sec", sec);
+		Serial.printf(success_msg, sizeof(success_msg)-1, "Going down in %d sec", sec);
 
 		return decode_instcmd_exec(res, (unsigned char)answer[0], cmdname, success_msg);
 	}
@@ -2151,7 +2126,7 @@ static int instcmd(const char *cmdname, const char *extra)
 		cbuf[1] = (unsigned char)outlet_num;                           /* Outlet number */
 
 		res = command_write_sequence(cbuf, 2, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			"Outlet %d is  %s",
 			outlet_num,
 			((cmdname[NUT_OUTLET_POSITION+8] == 'n') ? "On" : "Off"));
@@ -2207,22 +2182,11 @@ static int decode_instcmd_exec(const ssize_t res, const unsigned char exec_statu
 	}
 }
 
-void upsdrv_help(void)
-{
-}
-
-/* list flags and values that you want to receive via -x */
-void upsdrv_makevartable(void)
-{
-	addvar(VAR_VALUE, "shutdown_delay", "Specify shutdown delay (seconds)");
-	addvar(VAR_VALUE, "baud_rate", "Specify communication speed (ex: 9600)");
-}
-
 int setvar (const char *varname, const char *val)
 {
 	unsigned char answer[128], cbuf[5];
 	char namebuf[MAX_NUT_NAME_LENGTH];
-	char success_msg[SMALLBUF];
+	char success_msg[512];
 	ssize_t res;
 	int sec, outlet_num, tmp;
 	int onOff_setting = PW_AUTO_OFF_DELAY;
@@ -2245,7 +2209,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=(unsigned char)(tmp>>8);
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" BOOST threshold volage set to %d V", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2268,7 +2232,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=(unsigned char)(tmp>>8);
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" TRIM threshold volage set to %d V", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2291,7 +2255,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=0x0;
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" Low battery warning time set to %d min", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2314,7 +2278,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=(unsigned char)(tmp>>8);
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" Mains return delay set to %d sec", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2337,7 +2301,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=0x0;
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" Mains return minimum battery capacity set to %d %%", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2361,7 +2325,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=0x0;
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" Maximum temperature set to %d C", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2384,7 +2348,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=(unsigned char)(tmp>>8);
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" Nominal output voltage set to %d V", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2407,7 +2371,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=0x0;
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1, " Minimum load before sleep countdown set to %d %%", tmp);
+		Serial.printf(success_msg, sizeof(success_msg)-1, " Minimum load before sleep countdown set to %d %%", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
 
@@ -2429,7 +2393,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=0x0;
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			" Delay before sleep shutdown set to %d min", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
@@ -2453,7 +2417,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[3]=0x0;
 
 		res = command_write_sequence(cbuf, 4, answer);
-		snprintf(success_msg, sizeof(success_msg)-1, "EBM Count set to %d ", tmp);
+		Serial.printf(success_msg, sizeof(success_msg)-1, "EBM Count set to %d ", tmp);
 
 		return decode_setvar_exec(res, (unsigned char)answer[0], varname, success_msg);
 	}
@@ -2498,7 +2462,7 @@ int setvar (const char *varname, const char *val)
 		cbuf[4] = (unsigned char)(sec>>8);		/* Delay in seconds MSB */
 
 		res = command_write_sequence(cbuf, 5, answer);
-		snprintf(success_msg, sizeof(success_msg)-1,
+		Serial.printf(success_msg, sizeof(success_msg)-1,
 			"Outlet %d %s delay set to %d sec",
 			outlet_num,
 			(onOff_setting == PW_AUTO_ON_DELAY) ? "start" : "shutdown",
