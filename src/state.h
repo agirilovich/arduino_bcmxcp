@@ -13,11 +13,6 @@
 #define ST_FLAG_NUMBER    0x0004
 #define ST_FLAG_IMMUTABLE 0x0008
 
-extern	struct	ups_handler	upsh;
-
-	/* asynchronous (nonblocking) Vs synchronous (blocking) I/O
-	 * Defaults to nonblocking, for backward compatibility */
-
 /* list of instant commands */
 typedef struct cmdlist_s {
 	char *name;

@@ -2,10 +2,12 @@
 #include "bcmxcp_io.h"
 #include <HardwareSerial.h>
 
+#define SSIZE_MAX ((ssize_t)(-1LL))
+
 HardwareSerial UPSSerial(2);
 
-#define RXD1 12
-#define TXD1 13
+#define RXD2 16
+#define TXD2 17
 
 static void send_command(unsigned char *command, size_t command_length)
 {
@@ -234,5 +236,5 @@ void upsdrv_comm_good()
 
 void upsdrv_initups(void)
 {
-  UPSSerial.begin(9600, SERIAL_8N1, RXD1, TXD1);
+  UPSSerial.begin(9600, SERIAL_8N1, RXD2, TXD2);
 }

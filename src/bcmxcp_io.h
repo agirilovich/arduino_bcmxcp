@@ -1,10 +1,6 @@
-
-//#include <stddef.h>
 #include <Arduino.h>
 #include <sys/types.h>
 #include "state.h"
-
-#define SSIZE_MAX ((ssize_t)(-1LL))
 
 void send_write_command(unsigned char *command, size_t command_length);
 ssize_t get_answer(unsigned char *data, unsigned char command);

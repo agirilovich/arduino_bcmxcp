@@ -11,6 +11,8 @@
 
 #define LED_BUILTIN 22
 
+#include "bcmxcp_io.h"
+
 
 void setup() {
   Serial.begin(115200);
@@ -57,9 +59,14 @@ void setup() {
   // you're connected now, so print out the data
   printWifiStatus();
 
+  //init connection to UPS
+  upsdrv_initups();
   
+  upsdrv_initinfo();
+
 }
 
 void loop() {
+  upsdrv_updateinfo();
   esp_task_wdt_reset();
 }
