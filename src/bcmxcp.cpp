@@ -1271,7 +1271,7 @@ void upsdrv_initinfo(void)
 	/* Get information on UPS from UPS ID block */
 	res = command_read_sequence(PW_ID_BLOCK_REQ, answer);
 	if (res <= 0)
-		Serial.println("Could not communicate with the ups");
+		Serial.println("Could not communicate with the ups 555");
 
 	/* Get number of CPU's in ID block */
 	len = answer[iIndex++];

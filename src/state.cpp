@@ -48,7 +48,7 @@ int state_addcmd(cmdlist_t **list, const char *cmd)
 int dstate_setinfo(const char *var, const char *fmt, ...)
 {
 	int	ret;
-	char	value[ST_MAX_VALUE_LEN];
+	char value[ST_MAX_VALUE_LEN];
 	va_list	ap;
 
 	va_start(ap, fmt);

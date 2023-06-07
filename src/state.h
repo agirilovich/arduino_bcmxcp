@@ -13,6 +13,7 @@
 #define ST_FLAG_NUMBER    0x0004
 #define ST_FLAG_IMMUTABLE 0x0008
 
+
 /* list of instant commands */
 typedef struct cmdlist_s {
 	char *name;

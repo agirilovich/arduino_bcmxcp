@@ -15,7 +15,7 @@
 
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
 
   esp_reset_reason_t reason = esp_reset_reason();
@@ -49,7 +49,7 @@ void setup() {
   }
   
 
-  Serial.print("Start WiFiMQTT on ");
+  Serial.print("Start WiFi on ");
   Serial.println(DEVICE_BOARD_NAME);
   
   initializeWiFi(DEVICE_BOARD_NAME);
@@ -67,6 +67,6 @@ void setup() {
 }
 
 void loop() {
-  upsdrv_updateinfo();
-  esp_task_wdt_reset();
+  //upsdrv_updateinfo();
+  //esp_task_wdt_reset();
 }
